@@ -16,6 +16,6 @@ ssh localhost
 
 ### 配置core-site.xml
 
-```xml
+```
 <script src="https://gist.github.com/HarryZhu/9396370.js"></script>
 ```
