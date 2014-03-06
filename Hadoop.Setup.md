@@ -17,3 +17,6 @@ ssh localhost
 ### 配置core-site.xml
 
 <script src="https://gist.github.com/HarryZhu/9396370.js"></script>
+
+
+{% gist 9396370 %}
