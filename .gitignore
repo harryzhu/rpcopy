@@ -1,2 +1,1 @@
-status/node_modules/
-status/nbproject
+*.pyc
