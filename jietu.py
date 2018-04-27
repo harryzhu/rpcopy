@@ -76,8 +76,8 @@ def getSnapShotByUrl(url="",fileName="",width=1920,height=5400):
 	fn = "".join([domainDir,os.sep,fileName,"_",ts_suffix,".png"])
 
 	res_return = False
+	driver = webdriver.Chrome(chrome_options=co)
 	try:
-		driver = webdriver.Chrome(chrome_options=co)
 		driver.get(url)
 		driver.implicitly_wait(5)
 		driver.save_screenshot(fn)
