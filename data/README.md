@@ -1,0 +1,1 @@
+screenshot(images) will be saved by site's hostname.
