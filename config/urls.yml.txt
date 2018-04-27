@@ -1,8 +1,0 @@
-# Format of config/urls.yml 
-
-
-[
-  {'url':'https://cn.bing.com/','file':"https_cn_bing_com",'width':1920,'height':1080},
-]
-
-
