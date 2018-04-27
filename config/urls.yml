@@ -1,0 +1,11 @@
+[
+  {'url':'http://www.westwin.com/','file':"http_www_westwin_com"},
+  {'url':'http://adstochina.westwin.com/','file':"http_adstochina_westwin_com"},
+  {'url':'https://biying.westwin.com/','file':"https_biying_westwin_com"},
+  {'url':'https://account.westwin.com/','file':"https_account_westwin_com",'width': 1920, 'height': 1080},
+  {'url':'http://www.zanstyling.com/','file':"http_www_zanstyling_com",'width': 1920, 'height': 2160},
+  {'url':'http://www.nawo.online/','file':"http_www_nawo_online",'width': 1920, 'height': 2160},
+  {'url':'http://www.fantasilk.shop/','file':"http_www_fantasilk_shop",'width': 1920, 'height': 2160},
+  {'url':'http://healthtopquestions.com/','file':"http_healthtopquestions_com",'width': 1920, 'height': 2160},
+  {'url':'https://fabu-club.com/','file':"https_fabu-club_com",'width': 1920, 'height': 2160},
+]
