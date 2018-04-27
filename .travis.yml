@@ -3,4 +3,5 @@ language: python
     - "3.6"
   install:
     - pip install -r requirements.txt
-  script: python test_jietu.py
+  script: 
+    - python test_jietu.py
