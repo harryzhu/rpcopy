@@ -41,7 +41,8 @@ chrome_options.add_argument('--user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; 
 chrome_options.add_argument("--disable-gpu")
 chrome_options.add_argument('--ignore-certificate-errors')
 
-chrome_options.binary_location="/usr/bin/google-chrome"
+chrome_options.binary_location="/usr/bin/google-chrome-stable"
+#chrome_options.binary_location="google-chrome-stable"
 
 def getSnapShotByUrl(url="",fileName="",width=1920,height=5400):
 	if len(url) == 0 or len(fileName) == 0 :
@@ -76,7 +77,7 @@ def getSnapShotByUrl(url="",fileName="",width=1920,height=5400):
 	fn = "".join([domainDir,os.sep,fileName,"_",ts_suffix,".png"])
 
 	res_return = False
-	driver = webdriver.Chrome(chrome_options=co)
+	driver = webdriver.Chrome(options=co)
 	try:
 		driver.get(url)
 		driver.implicitly_wait(5)
