@@ -111,7 +111,7 @@ def getUrlsFromYAML():
 	f = open(CONF_URL_LIST,'r',encoding='utf-8')
 	content = f.read()
 	f.close()
-	urls = yaml.load(content)
+	urls = yaml.safe_load(content)
 	if urls is None:
 		logger.error("cannot parse the file: %s " % CONF_URL_LIST)
 		return None
