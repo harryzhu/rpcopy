@@ -15,6 +15,8 @@ APP_DIR_ROOT = os.path.split(os.path.realpath(__file__))[0]
 DATA_DIR_ROOT = os.path.join(APP_DIR_ROOT,"data")
 LOGS_DIR_ROOT = os.path.join(APP_DIR_ROOT,"logs")
 
+USER_DATA_DIR= "/home/ops/dev/data/chromeuserdir/"
+
 CONF_URL_LIST = os.path.join(APP_DIR_ROOT,"config","urls.yml")
 
 logger = logging.getLogger(__name__)
@@ -36,7 +38,7 @@ logger.addHandler(console)
 chrome_options = Options()
 chrome_options.add_argument("--headless")
 chrome_options.add_argument("--disable-gpu")
-chrome_options.add_argument("--user-data-dir=/home/ops/dev/data/chromeuserdir/")
+chrome_options.add_argument("--user-data-dir=" + USER_DATA_DIR)
 chrome_options.add_argument('--user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36"')
 chrome_options.add_argument("--disable-gpu")
 chrome_options.add_argument('--ignore-certificate-errors')
@@ -67,11 +69,19 @@ def getSnapShotByUrl(url="",fileName="",width=1920,height=5400):
 	domainDir = None
 	domainDir = os.path.join(DATA_DIR_ROOT,domainName)
 	if (not domainDir is None) and (not os.path.exists(domainDir)):
-		os.mkdir(domainDir)
-		logger.info('mkdir: %s' % domainDir)
+		os.mkdirs(domainDir)
+		logger.info('mkdirs: %s' % domainDir)
 
 	if not os.path.exists(domainDir):
 		logger.error('%s does not exist.' % domainDir)
+		return None
+
+	if (not USER_DATA_DIR is None) and (not os.path.exists(USER_DATA_DIR)):
+			os.mkdirs(USER_DATA_DIR)
+			logger.info('mkdirs: %s' % USER_DATA_DIR)
+
+	if not os.path.exists(USER_DATA_DIR):
+		logger.error('%s does not exist.' % USER_DATA_DIR)
 		return None
 
 	fn = "".join([domainDir,os.sep,fileName,"_",ts_suffix,".png"])
