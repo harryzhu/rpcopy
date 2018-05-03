@@ -7,8 +7,7 @@ def isInteger(value):
 	rec = re.compile(r'[0-9]\d*$')
 	if rec.match(value):
 		return True
-	else:
-		return False
+	return False
 
 
 class jietuTestCase(unittest.TestCase):
