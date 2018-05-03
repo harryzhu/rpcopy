@@ -2,13 +2,15 @@ language: python
 python:
   - "3.6"
 dist: trusty
-addons:
-  chrome: stable
+# addons:
+#   chrome: stable
 before_install:
   - sudo apt-get install -y unzip
-  - wget http://chromedriver.storage.googleapis.com/2.38/chromedriver_linux64.zip /usr/bin/chromedriver_linux64.zip
-  - unzip /usr/bin/chromedriver_linux64.zip /usr/bin/
-install:
-  - pip install -r requirements.txt
-script: 
-  - python test_jietu.py
+  - wget -N http://chromedriver.storage.googleapis.com/2.38/chromedriver_linux64.zip
+  - unzip chromedriver_linux64.zip
+  - chmod +x chromedriver
+  - sudo mv -f chromedriver /usr/bin/chromedriver
+# install:
+#   - pip install -r requirements.txt
+# script: 
+#   - python test_jietu.py
