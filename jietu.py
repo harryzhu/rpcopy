@@ -55,7 +55,7 @@ def getSnapShotByUrl(url="",fileName="",width=1920,height=5400):
 	logger.info("URL: %s" % url)
 	NOW=datetime.datetime.now()
 	ts_suffix = "_".join([str(NOW.weekday()),str(NOW.hour)])
-	
+
 	ws = "".join(["--window-size=",str(width),",",str(height)])
 	co = copy.deepcopy(chrome_options)
 	co.add_argument(ws)
@@ -93,7 +93,7 @@ def getSnapShotByUrl(url="",fileName="",width=1920,height=5400):
 		driver.implicitly_wait(5)
 		driver.save_screenshot(fn)
 		if os.path.exists(fn):
-			res_return = True	
+			res_return = True
 	except Exception as e:
 		logger.error(e)
 		res_return = False
@@ -102,7 +102,7 @@ def getSnapShotByUrl(url="",fileName="",width=1920,height=5400):
 		driver.quit()
 
 	return res_return
-	
+
 
 def getUrlsFromYAML():
 	if not os.path.exists(CONF_URL_LIST):
