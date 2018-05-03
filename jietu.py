@@ -15,7 +15,7 @@ APP_DIR_ROOT = os.path.split(os.path.realpath(__file__))[0]
 DATA_DIR_ROOT = os.path.join(APP_DIR_ROOT,"data")
 LOGS_DIR_ROOT = os.path.join(APP_DIR_ROOT,"logs")
 
-USER_DATA_DIR= "/home/ops/dev/data/chromeuserdir/"
+USER_DATA_DIR= os.path.join(APP_DIR_ROOT,"chromeuserdatadir")
 
 CONF_URL_LIST = os.path.join(APP_DIR_ROOT,"config","urls.yml")
 
@@ -77,7 +77,7 @@ def getSnapShotByUrl(url="",fileName="",width=1920,height=5400):
 		return None
 
 	if (not USER_DATA_DIR is None) and (not os.path.exists(USER_DATA_DIR)):
-		os.makedirs(USER_DATA_DIR)
+		os.mkdir(USER_DATA_DIR)
 		logger.info('mkdirs: %s' % USER_DATA_DIR)
 
 	if not os.path.exists(USER_DATA_DIR):
