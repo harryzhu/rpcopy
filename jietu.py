@@ -69,7 +69,7 @@ def getSnapShotByUrl(url="",fileName="",width=1920,height=5400):
 	domainDir = None
 	domainDir = os.path.join(DATA_DIR_ROOT,domainName)
 	if (not domainDir is None) and (not os.path.exists(domainDir)):
-		os.mkdirs(domainDir)
+		os.mkdir(domainDir)
 		logger.info('mkdirs: %s' % domainDir)
 
 	if not os.path.exists(domainDir):
@@ -77,7 +77,7 @@ def getSnapShotByUrl(url="",fileName="",width=1920,height=5400):
 		return None
 
 	if (not USER_DATA_DIR is None) and (not os.path.exists(USER_DATA_DIR)):
-		os.mkdirs(USER_DATA_DIR)
+		os.makedirs(USER_DATA_DIR)
 		logger.info('mkdirs: %s' % USER_DATA_DIR)
 
 	if not os.path.exists(USER_DATA_DIR):
