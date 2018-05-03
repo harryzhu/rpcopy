@@ -10,7 +10,8 @@ before_install:
   - unzip chromedriver_linux64.zip
   - chmod +x chromedriver
   - sudo mv -f chromedriver /usr/bin/chromedriver
+  - /usr/bin/chromedriver -v
 # install:
 #   - pip install -r requirements.txt
-# script: 
-#   - python test_jietu.py
+script: 
+  - python test_jietu.py
