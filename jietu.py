@@ -65,7 +65,7 @@ def getSnapShotByUrl(url="",fileName="",width=1920,height=5400):
 	if not domainName.index('.'):
 		logger.error("cannot parse the URL's hostname.")
 		return None
-	
+		
 	domainDir = None
 	domainDir = os.path.join(DATA_DIR_ROOT,domainName)
 	if (not domainDir is None) and (not os.path.exists(domainDir)):

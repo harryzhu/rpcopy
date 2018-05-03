@@ -1,2 +1,8 @@
 #!/bin/bash
-/home/ops/dev/py/py3/bin/python /home/ops/dev/py/chrome/jietu/jietu.py
+PY3=`which python3`
+WORKDIR=$(cd $(dirname $0); pwd)
+cd $WORKDIR
+coverage xml
+python-codacy-coverage -r coverage.xml
+
+$PY3 $WORKDIR/jietu.py
