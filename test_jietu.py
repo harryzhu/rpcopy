@@ -30,10 +30,10 @@ class jietuTestCase(unittest.TestCase):
 		self.assertEqual(height_int_valid, 1,'height should be integer and > 0.')
 
 	def test_getSnapShotByUrl(self):
-		pass
+		#pass
 		#ignore because the travis cannot have chrome and chromedriver
-		#isBingImageCaptured = jietu.getSnapShotByUrl(url="https://cn.bing.com/", fileName="https_cn_bing_com", width=1920, height=1080)
-		#self.assertEqual(isBingImageCaptured, True,'cannot take the screenshot.')
+		isBingImageCaptured = jietu.getSnapShotByUrl(url="https://cn.bing.com/", fileName="https_cn_bing_com", width=1920, height=1080)
+		self.assertEqual(isBingImageCaptured, True,'cannot take the screenshot.')
 
 
 
