@@ -48,8 +48,7 @@ class JietuTestCase(unittest.TestCase):
         """
         #pass
         #ignore because the travis cannot have chrome and chromedriver
-        is_bing_image_captured = jietu.get_snapshot_by_url(
-            url="https://cn.bing.com/", fileName="https_cn_bing_com", width=1920, height=1080)
+        is_bing_image_captured = jietu.get_snapshot_by_url(url="https://cn.bing.com/", file_name="https_cn_bing_com", width=1920, height=1080)
         self.assertEqual(is_bing_image_captured, True, 'cannot take the screenshot.')
 
 
