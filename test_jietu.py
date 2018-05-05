@@ -1,7 +1,6 @@
 #coding=utf-8
 import unittest
 import jietu
-import argparse
 import re
 
 def isInteger(value):
@@ -42,9 +41,4 @@ class jietuTestCase(unittest.TestCase):
 
 
 if __name__ == '__main__':
-	argp = argparse.ArgumentParser(description='support --model.')
-	argp.add_argument('--model', default='production', help='debug / production')
-	args = argp.parse_args()
-	print(args.model)
-	#unittest.main()
-	#print(isInteger(43))
+	unittest.main()
