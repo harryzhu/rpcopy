@@ -109,6 +109,7 @@ def get_snapshot_by_url(url=None, file_name=None, width=1920, height=5400):
 
     return res_return
 
+
 def get_urls_from_yaml():
     """
     get_urls_from_yaml
