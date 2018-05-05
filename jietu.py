@@ -68,12 +68,11 @@ def get_snapshot_by_url(url=None, file_name=None, width=1920, height=5400):
     ch_options.add_argument(window_size)
 
     domain_name = None
+    domain_dir = None
     domain_name = urlparse(url).netloc
     if not domain_name.index('.'):
         LOGGER.error("cannot parse the URL's hostname.")
         return None
-        
-    domain_dir = None
     domain_dir = os.path.join(DATA_DIR_ROOT, domain_name)
     if (not domain_dir is None) and (not os.path.exists(domain_dir)):
         os.mkdir(domain_dir)
