@@ -74,7 +74,7 @@ def get_snapshot_by_url(url=None, file_name=None, width=1920, height=5400):
 
     domain_dir = None
     domain_dir = os.path.join(DATA_DIR_ROOT, domain_name)
-    if (not domain_dir is None) and (not os.path.exists(domain_dir)):
+    if domain_dir and (not os.path.exists(domain_dir)):
         os.mkdir(domain_dir)
         LOGGER.info('mkdir: %s', domain_dir)
 
@@ -82,7 +82,7 @@ def get_snapshot_by_url(url=None, file_name=None, width=1920, height=5400):
         LOGGER.error('%s does not exist.', domain_dir)
         return None
 
-    if (not USER_DATA_DIR is None) and (not os.path.exists(USER_DATA_DIR)):
+    if USER_DATA_DIR and (not os.path.exists(USER_DATA_DIR)):
         os.mkdir(USER_DATA_DIR)
         LOGGER.info('mkdir: %s', USER_DATA_DIR)
 
@@ -96,7 +96,7 @@ def get_snapshot_by_url(url=None, file_name=None, width=1920, height=5400):
     driver = webdriver.Chrome(options=ch_options)
     try:
         driver.get(url)
-        driver.implicitly_wait(5)
+        driver.implicitly_wait(3)
         driver.save_screenshot(full_name)
         if os.path.exists(full_name):
             res_return = True
