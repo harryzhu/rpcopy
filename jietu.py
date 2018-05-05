@@ -58,8 +58,8 @@ def get_snapshot_by_url(url=None, file_name=None, width=1920, height=5400):
         LOGGER.error('URL or file_name could not be empty.')
         return None
 
-    LOGGER.info("=====START(%s)=====" % url)
-    LOGGER.info("URL: %s" % url)
+    LOGGER.info("=====START(%s)=====", url)
+    LOGGER.info("URL: %s", url)
     ts_now = datetime.datetime.now()
     ts_suffix = "_".join([str(ts_now.weekday()), str(ts_now.hour)])
 
@@ -68,26 +68,27 @@ def get_snapshot_by_url(url=None, file_name=None, width=1920, height=5400):
     ch_options.add_argument(window_size)
 
     domain_name = None
-    domain_dir = None
     domain_name = urlparse(url).netloc
     if not domain_name.index('.'):
         LOGGER.error("cannot parse the URL's hostname.")
         return None
+    
+    domain_dir = None    
     domain_dir = os.path.join(DATA_DIR_ROOT, domain_name)
     if (not domain_dir is None) and (not os.path.exists(domain_dir)):
         os.mkdir(domain_dir)
-        LOGGER.info('mkdir: %s' % domain_dir)
+        LOGGER.info('mkdir: %s', domain_dir)
 
     if not os.path.exists(domain_dir):
-        LOGGER.error('%s does not exist.' % domain_dir)
+        LOGGER.error('%s does not exist.', domain_dir)
         return None
 
     if (not USER_DATA_DIR is None) and (not os.path.exists(USER_DATA_DIR)):
         os.mkdir(USER_DATA_DIR)
-        LOGGER.info('mkdir: %s' % USER_DATA_DIR)
+        LOGGER.info('mkdir: %s', USER_DATA_DIR)
 
     if not os.path.exists(USER_DATA_DIR):
-        LOGGER.error('%s does not exist.' % USER_DATA_DIR)
+        LOGGER.error('%s does not exist.', USER_DATA_DIR)
         return None
 
     full_name = "".join([domain_dir, os.sep, file_name, "_", ts_suffix, ".png"])
@@ -104,25 +105,24 @@ def get_snapshot_by_url(url=None, file_name=None, width=1920, height=5400):
         LOGGER.error(err)
         res_return = False
     finally:
-        LOGGER.info("=====END(%s)=====" % url)
+        LOGGER.info("=====END(%s)=====", url)
         driver.quit()
 
     return res_return
-
 
 def get_urls_from_yaml():
     """
     get_urls_from_yaml
     """
     if not os.path.exists(CONF_URL_LIST):
-        LOGGER.error('CONF_URL_LIST does not exist: %s' % CONF_URL_LIST)
+        LOGGER.error('CONF_URL_LIST does not exist: %s', CONF_URL_LIST)
         return None
     f_h = open(CONF_URL_LIST, 'r', encoding='utf-8')
     content = f_h.read()
     f_h.close()
     urls = yaml.safe_load(content)
     if urls is None:
-        LOGGER.error("cannot parse the file: %s " % CONF_URL_LIST)
+        LOGGER.error("cannot parse the file: %s ", CONF_URL_LIST)
         return None
 
     urls_return = []
@@ -134,6 +134,7 @@ def get_urls_from_yaml():
 
         win_width = 1920
         win_height = 6480
+
         if 'width' in url.keys() and url['width'] > 0:
             win_width = url['width']
         if 'height' in url.keys() and url['height'] > 0:
@@ -148,7 +149,7 @@ def run_task(url, file, width, height):
     """
     run_task
     """
-    LOGGER.info('pid {0} is running, parent id is {1}, Task {2}'.format(os.getpid(), os.getppid(), url))
+    LOGGER.info('pid %d is running, parent id is %d, Task %s', os.getpid(), os.getppid(), url)
     get_snapshot_by_url(url, file, width, height)
 
 if __name__ == '__main__':
@@ -158,10 +159,12 @@ if __name__ == '__main__':
     ARGS = ARGP.parse_args()
     
     URLS = get_urls_from_yaml()
-    if ARGS.model.lower() == 'debug':
-        LOGGER.info("running model: %s ." % ARGS.model.lower())
-        URLS = URLS[0:2]
     TASKS_RESULT = []
+
+    if ARGS.model.lower() == 'debug':
+        LOGGER.info("running model: %s .", ARGS.model.lower())
+        URLS = URLS[0:2]
+    
     if URLS is not None:
         PROCESS_POOL = multiprocessing.Pool(processes=4)
 
@@ -172,7 +175,7 @@ if __name__ == '__main__':
         PROCESS_POOL.join()
         LOGGER.info("all tasks is done.")
         for tr in TASKS_RESULT:
-            LOGGER.info("TASK RESULT: %s" % tr.get(timeout=1))
+            LOGGER.info("TASK RESULT: %s", tr.get(timeout=1))
 
-    LOGGER.info("Elapsed Running Time: %d seconds." % (time.time() - T_START))
+    LOGGER.info("Elapsed Running Time: %d seconds.", (time.time() - T_START))
 
