@@ -148,7 +148,7 @@ if __name__ == '__main__':
 	
 	urls = getUrlsFromYAML()
 	if args.model.lower() == 'debug':
-		urls = urls[0:4]
+		urls = urls[0:1]
 	tasks_result = []
 	if urls is not None:
 		processPool = multiprocessing.Pool(processes = 4)
