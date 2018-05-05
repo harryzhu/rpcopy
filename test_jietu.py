@@ -11,9 +11,7 @@ def is_integer(value):
     check if the param value is integer and > 0
     """
     rec = re.compile(r'[0-9]\d*$')
-    if rec.match(value):
-        return True
-    return False
+    return rec.match(value)
 
 
 class JietuTestCase(unittest.TestCase):
@@ -25,14 +23,14 @@ class JietuTestCase(unittest.TestCase):
         parse the yaml config
         """
         url_keys_required = set(['url', 'file', 'width', 'height'])
-        url_key_valid = 1
+        url_key_valid = 0
         width_int_valid = 0
         height_int_valid = 0
         urls = jietu.get_urls_from_yaml()
         for url in urls:
             url_keys = set(url.keys())
-            if not url_keys_required.issubset(url_keys):
-                url_key_valid = 0
+            if url_keys_required == url_keys:
+                url_key_valid = 1
             if 'width' in url_keys and is_integer(str(url['width'])) and url['width'] > 0:
                 width_int_valid = 1
             if 'height' in url_keys and is_integer(str(url['height'])) and url['height'] > 0:

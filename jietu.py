@@ -48,13 +48,12 @@ CHROME_OPTIONS.add_argument("--disable-gpu")
 CHROME_OPTIONS.add_argument('--ignore-certificate-errors')
 
 CHROME_OPTIONS.binary_location = "/usr/bin/google-chrome-stable"
-#CHROME_OPTIONS.binary_location = "google-chrome-stable"
 
 def get_snapshot_by_url(url=None, file_name=None, width=1920, height=5400):
     """
     get_snapshot_by_url
     """
-    if url is None or file_name is None:
+    if not url or not file_name:
         LOGGER.error('URL or file_name could not be empty.')
         return None
 
@@ -72,8 +71,8 @@ def get_snapshot_by_url(url=None, file_name=None, width=1920, height=5400):
     if not domain_name.index('.'):
         LOGGER.error("cannot parse the URL's hostname.")
         return None
-    
-    domain_dir = None    
+
+    domain_dir = None
     domain_dir = os.path.join(DATA_DIR_ROOT, domain_name)
     if (not domain_dir is None) and (not os.path.exists(domain_dir)):
         os.mkdir(domain_dir)
@@ -139,12 +138,13 @@ def get_urls_from_yaml():
             win_width = url['width']
         if 'height' in url.keys() and url['height'] > 0:
             win_height = url['height']
-        
+
         url_one = {'url':url['url'], 'file':url['file'], 'width': win_width, 'height': win_height}
         urls_return.append(url_one)
 
     return urls_return
-        
+
+
 def run_task(url, file, width, height):
     """
     run_task
@@ -152,25 +152,26 @@ def run_task(url, file, width, height):
     LOGGER.info('pid %d is running, parent id is %d, Task %s', os.getpid(), os.getppid(), url)
     get_snapshot_by_url(url, file, width, height)
 
+
 if __name__ == '__main__':
     T_START = time.time()
     ARGP = argparse.ArgumentParser(description='support --model.')
     ARGP.add_argument('--model', default='production', help='debug / production')
     ARGS = ARGP.parse_args()
-    
+
     URLS = get_urls_from_yaml()
     TASKS_RESULT = []
 
     if ARGS.model.lower() == 'debug':
         LOGGER.info("running model: %s .", ARGS.model.lower())
         URLS = URLS[0:2]
-    
-    if URLS is not None:
+
+    if not URLS is None:
         PROCESS_POOL = multiprocessing.Pool(processes=4)
 
-        for url in URLS:
-            TASKS_RESULT.append(PROCESS_POOL.apply_async(run_task, (url['url'], url['file'], url['width'], url['height'])))
-        
+        for URL in URLS:
+            TASKS_RESULT.append(PROCESS_POOL.apply_async(run_task, (URL['url'], URL['file'], URL['width'], URL['height'])))
+
         PROCESS_POOL.close()
         PROCESS_POOL.join()
         LOGGER.info("all tasks is done.")
@@ -178,4 +179,3 @@ if __name__ == '__main__':
             LOGGER.info("TASK RESULT: %s", tr.get(timeout=1))
 
     LOGGER.info("Elapsed Running Time: %d seconds.", (time.time() - T_START))
-
