@@ -49,7 +49,7 @@ CHROME_OPTIONS.add_argument('--ignore-certificate-errors')
 
 CHROME_OPTIONS.binary_location = "/usr/bin/google-chrome-stable"
 
-def get_snapshot_by_url(url=None, file_name=None, width=1920, height=5400):
+def get_snapshot_by_url(url, file_name, width=1920, height=5400):
     """
     get_snapshot_by_url
     """
@@ -154,29 +154,36 @@ def run_task(url, file, width, height):
     get_snapshot_by_url(url, file, width, height)
 
 
-if __name__ == '__main__':
-    T_START = time.time()
-    ARGP = argparse.ArgumentParser(description='support --model.')
-    ARGP.add_argument('--model', default='production', help='debug / production')
-    ARGS = ARGP.parse_args()
+def main():
+    """
+    main
+    """
+    t_start = time.time()
+    argp = argparse.ArgumentParser(description='support --model.')
+    argp.add_argument('--model', default='production', help='debug / production')
+    args = argp.parse_args()
 
-    URLS = get_urls_from_yaml()
-    TASKS_RESULT = []
+    urls = get_urls_from_yaml()
+    tasks_result = []
 
-    if ARGS.model.lower() == 'debug':
-        LOGGER.info("running model: %s .", ARGS.model.lower())
-        URLS = URLS[0:2]
+    if args.model.lower() == 'debug':
+        LOGGER.info("running model: %s .", args.model.lower())
+        urls = urls[0:2]
 
-    if not URLS is None:
-        PROCESS_POOL = multiprocessing.Pool(processes=4)
+    if not urls is None:
+        process_pool = multiprocessing.Pool(processes=4)
 
-        for URL in URLS:
-            TASKS_RESULT.append(PROCESS_POOL.apply_async(run_task, (URL['url'], URL['file'], URL['width'], URL['height'])))
+        for url in urls:
+            tasks_result.append(process_pool.apply_async(run_task, (url['url'], url['file'], url['width'], url['height'])))
 
-        PROCESS_POOL.close()
-        PROCESS_POOL.join()
+        process_pool.close()
+        process_pool.join()
         LOGGER.info("all tasks is done.")
-        for tr in TASKS_RESULT:
-            LOGGER.info("TASK RESULT: %s", tr.get(timeout=1))
+        for t_r in tasks_result:
+            LOGGER.info("TASK RESULT: %s", t_r.get(timeout=1))
 
-    LOGGER.info("Elapsed Running Time: %d seconds.", (time.time() - T_START))
+    LOGGER.info("Elapsed Running Time: %d seconds.", (time.time() - t_start))
+
+
+if __name__ == '__main__':
+    main()
