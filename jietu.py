@@ -4,6 +4,7 @@ import datetime
 import time
 import yaml
 import copy
+import argparse
 import logging
 from logging.handlers import RotatingFileHandler
 import multiprocessing
@@ -141,7 +142,13 @@ def run_task(url,file,width,height):
 
 if __name__ == '__main__':
 	t_start = time.time()
+	argp = argparse.ArgumentParser(description='support --model.')
+	argp.add_argument('--model', default='production', help='debug / production')
+	args = argp.parse_args()
+	
 	urls = getUrlsFromYAML()
+	if args.model.lower() == 'debug':
+		urls = urls[0:4]
 	tasks_result = []
 	if urls is not None:
 		processPool = multiprocessing.Pool(processes = 4)

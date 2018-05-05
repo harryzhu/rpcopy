@@ -1,6 +1,7 @@
 __pycache__/*
 logs/*
 chromeuserdatadir/*
+.coverage
 coverage.xml
 !README
 !README.md

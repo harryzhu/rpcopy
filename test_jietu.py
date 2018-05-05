@@ -1,6 +1,7 @@
 #coding=utf-8
 import unittest
 import jietu
+import argparse
 import re
 
 def isInteger(value):
@@ -12,16 +13,18 @@ def isInteger(value):
 
 class jietuTestCase(unittest.TestCase):
 	def test_getUrlsFromYAML(self):
+		url_keys_required = set(['url','file','width','height'])
 		url_key_valid = 1
 		width_int_valid = 0
 		height_int_valid = 0
 		urls = jietu.getUrlsFromYAML()
 		for url in urls:
-			if 'url' not in url.keys() or 'file' not in url.keys() or 'width' not in url.keys() or 'height' not in url.keys():
+			url_keys = set(url.keys())
+			if not url_keys_required.issubset(url_keys):
 				url_key_valid = 0
-			if 'width' in url.keys() and isInteger(str(url['width'])) and url['width'] > 0:
+			if 'width' in url_keys and isInteger(str(url['width'])) and url['width'] > 0:
 				width_int_valid = 1
-			if 'height' in url.keys() and isInteger(str(url['height'])) and url['height'] > 0:
+			if 'height' in url_keys and isInteger(str(url['height'])) and url['height'] > 0:
 				height_int_valid = 1
 
 		self.assertEqual(url_key_valid, 1,'YAML configuration file cannot be parsed correctly.')
@@ -39,5 +42,9 @@ class jietuTestCase(unittest.TestCase):
 
 
 if __name__ == '__main__':
-	unittest.main()
+	argp = argparse.ArgumentParser(description='support --model.')
+	argp.add_argument('--model', default='production', help='debug / production')
+	args = argp.parse_args()
+	print(args.model)
+	#unittest.main()
 	#print(isInteger(43))
