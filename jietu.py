@@ -180,7 +180,12 @@ def main():
         process_pool.join()
         LOGGER.info("all tasks is done.")
         for t_r in tasks_result:
-            LOGGER.info("TASK RESULT: %s", t_r.get(timeout=1))
+            try:
+                tr_get = t_r.get(timeout=3)
+            except Exception as err:
+                tr_get = "error"
+            finally:
+                LOGGER.info("TASK RESULT: %s", tr_get)
 
     LOGGER.info("Elapsed Running Time: %d seconds.", (time.time() - t_start))
 
