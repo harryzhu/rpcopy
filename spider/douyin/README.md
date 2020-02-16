@@ -1,6 +1,13 @@
-[![Build Status](https://travis-ci.org/HarryZhu/jietu.svg?branch=master)](https://travis-ci.org/HarryZhu/jietu)
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/bddae7c969d444fa9b7acc7f1f9c84b7)](https://www.codacy.com/app/HarryZhu/jietu?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=HarryZhu/jietu&amp;utm_campaign=Badge_Grade)
-[![Codacy Badge](https://api.codacy.com/project/badge/Coverage/bddae7c969d444fa9b7acc7f1f9c84b7)](https://www.codacy.com/app/HarryZhu/jietu?utm_source=github.com&utm_medium=referral&utm_content=HarryZhu/jietu&utm_campaign=Badge_Coverage)
+douyin:
+Python3 + mitmproxy
 
-URL2IMG:
-Python3.6(Multiprocessing.Pool) + Selenium + Chrome_headless
+brew install mitmproxy
+
+pip3 install mitmproxy
+
+启动
+mitmproxy -s addons.py
+
+手机Wi-Fi设置使用mac的上述代理服务器地址，访问 mitm.it 安装证书，通用-关于，里面信任该证书，打开dy进入作者作品页面，生成list，
+
+然后python ./req.py 下载video，时间不能间隔太久，地址是变化的
