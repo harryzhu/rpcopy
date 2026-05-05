@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package pb;
+option go_package=".;pb";
+
+service FileTransfer {
+  rpc StreamReceive(stream File) returns (stream File) {}
+  rpc Head(File) returns (File) {}
+}
+
+message File {
+  int32 status = 1;
+  bytes comment = 2;
+  bytes path = 3;
+  bytes ftype = 4;
+  bytes finfo = 5;
+  bytes fsum = 6;
+  int64 fsize = 7;
+  int32 chunks = 8;
+  int32 chunknum = 9;
+  bool  zstd = 10;
+  bytes data = 11;
+}
