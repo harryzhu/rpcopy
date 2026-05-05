@@ -59,7 +59,7 @@ func init() {
 	sendCmd.Flags().BoolVar(&IsZstdSend, "zstd", false, "if enable zstd compression, better for txt/pdf ...")
 	//
 	sendCmd.Flags().BoolVar(&IsIgnoreDotFile, "ignore-dot-file", false, "ignore the file if its file name starts with dot(.), i.e.: .DS_Store")
-	sendCmd.Flags().BoolVar(&IsIgnoreEmptyFolder, "ignore-empty-folder", false, "ignore the folder if it contains nothing")
+	sendCmd.Flags().BoolVar(&IsIgnoreEmptyFolder, "ignore-empty-dir", false, "ignore the folder if it contains nothing")
 
 	sendCmd.Flags().BoolVar(&IsFollowSymlink, "follow-symlink", false, "if true: copy linked file), if false: copy the symlink rather than the linked file")
 	//

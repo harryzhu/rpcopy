@@ -366,7 +366,6 @@ func StartFileTransferServer() {
 		PrintlnInfo("Endpoint RPC: ", hostPort)
 	}
 
-	MaxMessageSize := 2 << 30
 	grpcServerFileTransfer := grpc.NewServer(
 		grpc.MaxMsgSize(MaxMessageSize),
 		grpc.MaxRecvMsgSize(MaxMessageSize),
@@ -385,7 +384,8 @@ func pbFileHead(pbFile *pb.File, clientHead pb.FileTransferClient) *pb.File {
 
 func ClientSendFiles() error {
 	hostPort := strings.Join([]string{Host, Port}, ":")
-	conn, err := grpc.Dial(hostPort, grpc.WithInsecure())
+	conn, err := grpc.Dial(hostPort, grpc.WithInsecure(),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxMessageSize), grpc.MaxCallSendMsgSize(MaxMessageSize)))
 	if err != nil {
 		PrintError("ClientSendFiles", err)
 	}
@@ -453,6 +453,7 @@ func ClientSendFiles() error {
 		}
 
 		totalNum++
+		atomic.AddInt64(&totalWriteSize, finfo.Size())
 
 		wgSend.Add(1)
 		go func(fpath string, pbFile *pb.File, stream pb.FileTransfer_StreamReceiveClient) error {
@@ -465,7 +466,8 @@ func ClientSendFiles() error {
 			wgSend.Wait()
 		}
 
-		PrintSpinner(Int2Str(totalNum))
+		tws := atomic.LoadInt64(&totalWriteSize)
+		PrintSpinner(strings.Join([]string{Int2Str(totalNum), " => ", Int64Str(tws >> 20), "MB"}, ""))
 
 		return nil
 	})
@@ -509,6 +511,7 @@ func ClientSendFiles() error {
 	//
 	sendFinishSignal(clientStream)
 	//
+	time.Sleep(1 * time.Second)
 	err = clientStream.CloseSend()
 	if err != nil {
 		PrintError("ClientSendFiles: CloseSend", err)

@@ -212,6 +212,10 @@ func Int64Int(n int64) int {
 	return n10
 }
 
+func Int64Str(n int64) string {
+	return fmt.Sprintf("%v", n)
+}
+
 func GetNowTime() time.Time {
 	return time.Now()
 }
