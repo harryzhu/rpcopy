@@ -4,6 +4,8 @@
 
 适合通过 `RPC` 在`Windows`和`Linux`、`Mac`中批量中转文件，无需每台机器配置共享文件夹
 
+功能类似于 scp ，但是支持 windows、linux、mac 互传，支持筛选文件，支持压缩
+
 ## Quick Start
 
 1） 在 `Machine A` 上面启动 `server` 端

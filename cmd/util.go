@@ -298,6 +298,14 @@ func hashFile(fpath string) string {
 	return hex.EncodeToString(hasher.Sum(nil))
 }
 
+func hashString(b []byte) string {
+	var hasher hash.Hash
+	hasher = xxh3.New()
+	hasher.Write(b)
+
+	return hex.EncodeToString(hasher.Sum(nil))
+}
+
 func isCopyNeeded(fpath string, finfo fs.FileInfo) bool {
 	if FileExt != "" {
 		if fextMatch.MatchString(filepath.Ext(fpath)) == false {

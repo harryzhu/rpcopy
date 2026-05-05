@@ -13,9 +13,19 @@ import (
 	"path/filepath"
 	pb "pb"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"google.golang.org/grpc"
+)
+
+var (
+	chanFile         chan *pb.File = make(chan *pb.File, 32)
+	chanFile1        chan *pb.File = make(chan *pb.File, 32)
+	chanFile2        chan *pb.File = make(chan *pb.File, 32)
+	chanFile3        chan *pb.File = make(chan *pb.File, 32)
+	isChanFileRWDone bool
 )
 
 type FileInfoLite struct {
@@ -43,7 +53,6 @@ func (s *FileTransferService) StreamReceive(stream pb.FileTransfer_StreamReceive
 	for {
 		pbIn, err := stream.Recv()
 		if err == io.EOF {
-			//PrintError("StreamReceive:io.EOF", err)
 			return nil
 		}
 
@@ -54,18 +63,18 @@ func (s *FileTransferService) StreamReceive(stream pb.FileTransfer_StreamReceive
 		resp := pb.File{}
 
 		if string(pbIn.Ftype) == "file" {
-			success, err := pbFileChunkSave(pbIn)
-			if success == false && err == nil {
-				resp.Status = 206
+			switch pbIn.ChanNum {
+			case 1:
+				chanFile1 <- pbIn
+			case 2:
+				chanFile2 <- pbIn
+			case 3:
+				chanFile3 <- pbIn
+			default:
+				chanFile <- pbIn
 			}
 
-			if success == true && err == nil {
-				resp.Status = 201
-			}
-
-			if err != nil {
-				resp.Status = 500
-			}
+			resp.Status = 201
 		}
 
 		if string(pbIn.Ftype) == "dir" {
@@ -132,6 +141,10 @@ func pbFileChunkSave(pbIn *pb.File) (success bool, err error) {
 		return false, NewError("TargetDir or pbIn.Path cannot be empty")
 	}
 
+	if pbIn.Status < 0 {
+		return true, nil
+	}
+
 	dstPath := pbGetTargetPath(pbIn)
 	dstPathTemp := ToUnixSlash(strings.Join([]string{dstPath, "ing"}, "."))
 
@@ -147,7 +160,7 @@ func pbFileChunkSave(pbIn *pb.File) (success bool, err error) {
 	MakeDirs(filepath.Dir(dstPath))
 
 	dstWriter, err := os.OpenFile(dstPathTemp, os.O_CREATE|os.O_APPEND|os.O_WRONLY, os.ModePerm)
-	if pbIn.GetChunknum() == 0 {
+	if pbIn.GetChunkNum() == 0 {
 		dstWriter.Truncate(0)
 	}
 	defer dstWriter.Close()
@@ -158,7 +171,7 @@ func pbFileChunkSave(pbIn *pb.File) (success bool, err error) {
 	}
 
 	chunkTotal := pbIn.GetChunks()
-	chunkNum := pbIn.GetChunknum()
+	chunkNum := pbIn.GetChunkNum()
 
 	DebugInfo("--- pbFileChunkSave", chunkNum, "/", chunkTotal)
 	if pbIn.Data == nil {
@@ -248,9 +261,13 @@ func file2pbFile(fpath string, finfo fs.FileInfo, ftype string) *pb.File {
 	//
 	pbFile.Status = 0
 	pbFile.Comment = nil
-	pbFile.Path = []byte(strings.TrimPrefix(strings.TrimPrefix(fpath, SourceDir), "/"))
+	if fpath == "" {
+		pbFile.Path = nil
+	} else {
+		pbFile.Path = []byte(strings.TrimPrefix(strings.TrimPrefix(fpath, SourceDir), "/"))
+	}
 	pbFile.Ftype = []byte(ftype)
-	pbFile.Chunknum = 0
+	pbFile.ChunkNum = 0
 	pbFile.Data = nil
 	if ftype == "file" {
 		pbFile.Fsum = []byte(hashFile(fpath))
@@ -282,6 +299,14 @@ func pbFileChunkSend(fpath string, pbFile *pb.File, stream pb.FileTransfer_Strea
 	reader := bufio.NewReaderSize(fp, chunkSize)
 	buffer := make([]byte, chunkSize)
 
+	atomic.AddInt32(&chanNum, 1)
+
+	channum := atomic.LoadInt32(&chanNum)
+	if channum > 3 {
+		atomic.StoreInt32(&chanNum, 0)
+		channum = 0
+	}
+
 	chunkTotal := pbFile.Chunks
 	chunkNum := 0
 	for {
@@ -301,7 +326,8 @@ func pbFileChunkSend(fpath string, pbFile *pb.File, stream pb.FileTransfer_Strea
 			pbFile.Zstd = false
 		}
 
-		pbFile.Chunknum = int32(chunkNum)
+		pbFile.ChunkNum = int32(chunkNum)
+		pbFile.ChanNum = channum
 
 		err = stream.Send(pbFile)
 		if err != nil {
@@ -378,6 +404,7 @@ func ClientSendFiles() error {
 
 	SourceDir = ToUnixSlash(SourceDir)
 
+	wgSend := sync.WaitGroup{}
 	filepath.Walk(SourceDir, func(fpath string, finfo fs.FileInfo, err error) error {
 		if err != nil {
 			PrintError("ClientSendFiles: filepath.Walk", err)
@@ -411,8 +438,6 @@ func ClientSendFiles() error {
 			return nil
 		}
 
-		totalNum++
-
 		pbFile := file2pbFile(fpath, finfo, "file")
 		if IsOverwrite == false {
 			pbRemote := pbFileHead(pbFile, client)
@@ -427,12 +452,25 @@ func ClientSendFiles() error {
 			}
 		}
 
-		pbFileChunkSend(fpath, pbFile, clientStream)
+		totalNum++
+
+		wgSend.Add(1)
+		go func(fpath string, pbFile *pb.File, stream pb.FileTransfer_StreamReceiveClient) error {
+			defer wgSend.Done()
+			pbFileChunkSend(fpath, pbFile, clientStream)
+			return nil
+		}(fpath, pbFile, clientStream)
+
+		if totalNum > 15 && totalNum%16 == 0 {
+			wgSend.Wait()
+		}
 
 		PrintSpinner(Int2Str(totalNum))
 
 		return nil
 	})
+
+	wgSend.Wait()
 
 	//
 	for k, v := range dirList {
@@ -468,11 +506,47 @@ func ClientSendFiles() error {
 			return err
 		}
 	}
-
+	//
+	sendFinishSignal(clientStream)
+	//
 	err = clientStream.CloseSend()
 	if err != nil {
 		PrintError("ClientSendFiles: CloseSend", err)
+		return err
 	}
 
+	return nil
+}
+
+func sendFinishSignal(clientStream pb.FileTransfer_StreamReceiveClient) error {
+	pbFinish := &pb.File{Status: -1, Ftype: []byte("file")}
+
+	pbFinish.ChanNum = 0
+	err := clientStream.Send(pbFinish)
+	if err != nil {
+		PrintError("sendFinishSignal", err)
+		return err
+	}
+
+	pbFinish.ChanNum = 1
+	err = clientStream.Send(pbFinish)
+	if err != nil {
+		PrintError("sendFinishSignal", err)
+		return err
+	}
+
+	pbFinish.ChanNum = 2
+	err = clientStream.Send(pbFinish)
+	if err != nil {
+		PrintError("sendFinishSignal", err)
+		return err
+	}
+
+	pbFinish.ChanNum = 3
+	err = clientStream.Send(pbFinish)
+	if err != nil {
+		PrintError("sendFinishSignal", err)
+		return err
+	}
 	return nil
 }

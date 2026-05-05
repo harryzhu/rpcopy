@@ -23,6 +23,7 @@ var (
 	totalWriteSize int64                  = 0
 	totalSpeed     int64                  = 0
 	totalNum       int                    = 0
+	chanNum        int32                  = 0
 	dirList        map[string]fs.FileInfo = make(map[string]fs.FileInfo, 2048)
 	symList        map[string]string      = make(map[string]string, 256)
 )

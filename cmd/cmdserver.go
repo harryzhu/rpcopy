@@ -37,10 +37,30 @@ var serverCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		wg := sync.WaitGroup{}
-		wg.Add(1)
+		wg.Add(5)
 		go func() {
 			defer wg.Done()
 			StartFileTransferServer()
+		}()
+
+		go func() {
+			defer wg.Done()
+			taskChanFile()
+		}()
+
+		go func() {
+			defer wg.Done()
+			taskChanFile1()
+		}()
+
+		go func() {
+			defer wg.Done()
+			taskChanFile2()
+		}()
+
+		go func() {
+			defer wg.Done()
+			taskChanFile3()
 		}()
 
 		wg.Wait()
