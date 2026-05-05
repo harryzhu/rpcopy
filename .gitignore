@@ -1,10 +1,8 @@
-__pycache__/*
-logs/*
-chromeuserdatadir/*
-htmlcov/*
-coverage.xml
-!README
-!README.md
 .DS_Store
-config/*.yml
-*.png
+dist/
+_bak
+build.sh
+local_build.sh
+*.exe
+*.zip
+Thumbs.db

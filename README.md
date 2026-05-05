@@ -1,6 +1,8 @@
 # rpcopy
 
-跨机器文件夹复制工具
+跨机器文件夹RPC复制工具
+
+适合通过 `RPC` 在`Windows`和`Linux`、`Mac`中批量中转文件，无需每台机器配置共享文件夹
 
 ## Quick Start
 
