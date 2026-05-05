@@ -43,8 +43,6 @@ var sendCmd = &cobra.Command{
 		}()
 
 		wg.Wait()
-
-		//printCopyResult()
 	},
 	PostRun: func(cmd *cobra.Command, args []string) {
 		timeStop = GetNowUnix()

@@ -511,7 +511,7 @@ func ClientSendFiles() error {
 	//
 	sendFinishSignal(clientStream)
 	//
-	time.Sleep(1 * time.Second)
+	time.Sleep(2 * time.Second)
 	err = clientStream.CloseSend()
 	if err != nil {
 		PrintError("ClientSendFiles: CloseSend", err)

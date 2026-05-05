@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"strings"
 
@@ -53,7 +54,19 @@ var rootCmd = &cobra.Command{
 	PersistentPostRun: func(cmd *cobra.Command, args []string) {
 		timeStop = GetNowUnix()
 		if timeStart > 0 && timeStop > 0 {
-			fmt.Printf("\n***** Elapse: %v (sec) *****\n", (timeStop - timeStart))
+			timeDuration = timeStop - timeStart
+			if timeDuration > 2 {
+				// ClientSendFiles: clientStream.CloseSend()
+				// Wait for 2 seconds before send
+				timeDuration = timeDuration - 2
+			}
+			if timeDuration > 0 {
+				totalSpeed = int64(math.Ceil(float64(totalWriteSize)/float64(timeDuration))) >> 20
+				fmt.Println(SEP)
+				fmt.Printf("::: Copied: %v, Size: %v MB, Speed: %v MB/s\n", totalNum, totalWriteSize>>20, totalSpeed)
+			}
+
+			fmt.Printf("\n***** Elapse: %v (sec) *****\n", timeDuration)
 		}
 
 	},
