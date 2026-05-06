@@ -4,23 +4,16 @@ import (
 	pb "pb"
 )
 
-func getChanFileToDisk(pbIn *pb.File) *pb.File {
-	success, err := pbFileChunkSave(pbIn)
+func getChanFileToDisk(pbIn *pb.File) error {
+	statusCode, err := pbFileChunkSave(pbIn)
 
-	resp := &pb.File{}
-	if success == false && err == nil {
-		resp.Status = 206
-	}
-
-	if success == true && err == nil {
-		resp.Status = 201
-	}
+	pbSaveStatus[string(pbIn.Path)] = statusCode
 
 	if err != nil {
-		resp.Status = 500
+		pbSaveStatus[string(pbIn.Path)] = 500
 	}
 
-	return resp
+	return nil
 }
 
 func taskChanFile() error {

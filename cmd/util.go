@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/gob"
 	"encoding/hex"
 	"fmt"
 	"hash"
@@ -197,6 +199,25 @@ func MakeSymlink(srcFile string, dstLink string) error {
 	}
 
 	return nil
+}
+
+func Map2Byte(m map[string]int) []byte {
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	err := enc.Encode(&m)
+	PrintError("Map2Byte", err)
+	return buf.Bytes()
+}
+
+func Byte2Map(b []byte, m map[string]int) (map[string]int, error) {
+	buf := bytes.NewBuffer(b)
+	dec := gob.NewDecoder(buf)
+	err := dec.Decode(&m)
+	if err != nil {
+		PrintError("Byte2Map: gob.NewDecoder", err)
+		return m, err
+	}
+	return m, nil
 }
 
 func Int2Str(n int) string {

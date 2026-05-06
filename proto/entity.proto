@@ -6,6 +6,7 @@ option go_package=".;pb";
 service FileTransfer {
   rpc StreamReceive(stream File) returns (stream File) {}
   rpc Head(File) returns (File) {}
+  rpc GetMisc(Misc) returns (Misc) {}
 }
 
 message File {
@@ -22,3 +23,9 @@ message File {
   bool  zstd = 11;
   bytes data = 12;
 }
+
+message Misc {
+  string mtype = 1;
+  bytes data = 2;
+}
+
