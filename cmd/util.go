@@ -249,6 +249,20 @@ func GetNowUnixMilli() int64 {
 	return time.Now().UTC().UnixMilli()
 }
 
+func GetNowTimeStr(f string) string {
+	switch f {
+	case "YmdHis":
+		return time.Now().Format("20060102150405")
+	case "H":
+		return time.Now().Format("15")
+	case "His":
+		return time.Now().Format("150405")
+	default:
+		return time.Now().Format("20060102")
+	}
+
+}
+
 func ToUnixSlash(s string) string {
 	// for windows
 	return strings.ReplaceAll(s, "\\", "/")

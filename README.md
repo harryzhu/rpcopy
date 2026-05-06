@@ -36,6 +36,7 @@
 # 过滤文件夹下的文件，按需复制：
 # --ignore-dot-file： 是否忽略点(.)开头的文件, 如： .DS_Store
 # --ignore-empty-dir：是否忽略空文件夹
+# --log-dir：发送文件在服务端接收的结果报告，分为成功保存的（_success.log)和保存失败的（_failure.log)的
 #
 # --ext：只拷贝指定后缀名的文件， .mp4 只拷贝 mp4 文件， .png 只拷贝 png 图片， .(mp4|txt|png)同时拷贝 mp4、txt、png三类文件
 # --min-size：忽略小于该值的文件

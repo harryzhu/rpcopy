@@ -87,5 +87,5 @@ func init() {
 	//
 	rootCmd.PersistentFlags().StringVar(&Host, "host", "0.0.0.0", "host ip")
 	rootCmd.PersistentFlags().StringVar(&Port, "port", "9527", "port")
-	rootCmd.PersistentFlags().StringVar(&LogDir, "log-fir", ".", "log dir")
+	rootCmd.PersistentFlags().StringVar(&LogDir, "log-dir", ".", "log dir")
 }

@@ -10,6 +10,7 @@ func getChanFileToDisk(pbIn *pb.File) error {
 	pbSaveStatus[string(pbIn.Path)] = statusCode
 
 	if err != nil {
+		PrintError("getChanFileToDisk", err)
 		pbSaveStatus[string(pbIn.Path)] = 500
 	}
 
@@ -21,6 +22,7 @@ func taskChanFile() error {
 		ele := <-chanFile
 		if ele.Status == -1 {
 			DebugInfo("_COPYSTATUS:chanFile", "ALL_DONE")
+			continue
 		}
 		DebugInfo("_COPYSTATUS:chanFile", ele.ChanNum, ": ", string(ele.Path))
 
@@ -36,6 +38,7 @@ func taskChanFile1() error {
 		ele := <-chanFile1
 		if ele.Status == -1 {
 			DebugInfo("_COPYSTATUS:chanFile1", "ALL_DONE")
+			continue
 		}
 		DebugInfo("_COPYSTATUS:chanFile1", ele.ChanNum, ": ", string(ele.Path))
 
@@ -51,6 +54,7 @@ func taskChanFile2() error {
 		ele := <-chanFile2
 		if ele.Status == -1 {
 			DebugInfo("_COPYSTATUS:chanFile2", "ALL_DONE")
+			continue
 		}
 		DebugInfo("_COPYSTATUS:chanFile2", ele.ChanNum, ": ", string(ele.Path))
 
@@ -66,6 +70,7 @@ func taskChanFile3() error {
 		ele := <-chanFile3
 		if ele.Status == -1 {
 			DebugInfo("_COPYSTATUS:chanFile3", "ALL_DONE")
+			continue
 		}
 		DebugInfo("_COPYSTATUS:chanFile3", ele.ChanNum, ": ", string(ele.Path))
 

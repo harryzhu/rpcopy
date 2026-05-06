@@ -204,8 +204,12 @@ func pbFileDirSymlinkSave(pbIn *pb.File) (respStatus int32) {
 }
 
 func pbFileChunkSave(pbIn *pb.File) (statusCode int, err error) {
-	if TargetDir == "" || pbIn.Path == nil {
-		return 500, NewError("TargetDir or pbIn.Path cannot be empty")
+	if TargetDir == "" {
+		return 500, NewError("TargetDir cannot be empty")
+	}
+
+	if pbIn.Path == nil {
+		return 400, NewError("pbIn.Path cannot be empty")
 	}
 
 	if pbIn.Status < 0 {

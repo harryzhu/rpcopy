@@ -230,6 +230,10 @@ func ClientSendFiles() error {
 
 		fpath = ToUnixSlash(fpath)
 
+		if fpath == "." || fpath == ".." || fpath == "" {
+			return nil
+		}
+
 		if finfo.IsDir() {
 			if IsIgnoreEmptyFolder == false {
 				dirList[fpath] = finfo
@@ -361,8 +365,10 @@ func sendReportSignal(client pb.FileTransferClient) error {
 		PrintError("sendReportSignal:stream.Recv", err)
 		return err
 	}
-	successTxt := filepath.Join(LogDir, "rpcopy_success.log")
-	failureTxt := filepath.Join(LogDir, "rpcopy_failure.log")
+
+	successTxt := filepath.Join(LogDir, GetNowTimeStr("Ymd"), strings.Join([]string{GetNowTimeStr("H"), "rpcopy", "success.log"}, "_"))
+	failureTxt := filepath.Join(LogDir, GetNowTimeStr("Ymd"), strings.Join([]string{GetNowTimeStr("H"), "rpcopy", "error.log"}, "_"))
+	MakeDirs(filepath.Dir(failureTxt))
 
 	successWriter, err := os.OpenFile(successTxt, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.ModePerm)
 	PrintError("sendReportSignal:os.OpenFile", err)
