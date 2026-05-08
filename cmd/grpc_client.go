@@ -29,6 +29,8 @@ var (
 	sendFileList  map[string]int64
 	smallFileList []string
 	largeFileList []string
+	//
+	progressFlag int32 = 0
 )
 
 func finfo2FileInfoLite(finfo fs.FileInfo) []byte {
@@ -153,7 +155,7 @@ func pbFileChunkSend(fpath string, pbFile *pb.File, stream pb.FileTransfer_Strea
 	return nil
 }
 
-func pbFileHead(pbFile *pb.File, clientHead pb.FileTransferClient) *pb.File {
+func pbFileHead2(pbFile *pb.File, clientHead pb.FileTransferClient) *pb.File {
 	resp, err := clientHead.Head(context.Background(), pbFile)
 	PrintError("pbFileHead", err)
 	return resp
@@ -186,6 +188,7 @@ func SetClientStreamConn() (err error) {
 	return nil
 }
 
+// ClientSendDirSymlink is for directory and symlink
 // run after ClientSendFiles
 func ClientSendDirSymlink() error {
 	DebugInfo("ClientSendFiles: Sending", "dir list")
@@ -372,6 +375,7 @@ func SetFileList() error {
 	DebugInfo("SetFileList:largeFileList", len(largeFileList))
 
 	fdump := filepath.Join(LogDir, GetNowTimeStr("Ymd"), strings.Join([]string{GetNowTimeStr("H"), "rpcopy", "send_list.txt"}, "_"))
+	MakeDirs(filepath.Dir(fdump))
 	dumpWriter, err := os.OpenFile(fdump, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.ModePerm)
 	if err != nil {
 		PrintError("SetFileList: Dump sendFileList", err)
@@ -411,13 +415,6 @@ func ClientSendLargeFileList() error {
 		DebugInfo("ClientSendLargeFileList: Sending", fpath)
 		err = pbFileChunkSend(fpath, pbFile, gClientStream)
 		PrintError("ClientSendLargeFileList: pbFileChunkSend", err)
-
-		curTotalNum := atomic.LoadInt32(&totalNum)
-		curTotalWriteSize := atomic.LoadInt64(&totalWriteSize)
-		if IsDebug == false && curTotalNum%5 == 0 {
-			PrintSpinner2(strings.Join([]string{Int32Str(curTotalNum), " => "}, ""),
-				strings.Join([]string{Int64Str(curTotalWriteSize >> 20), " MB"}, ""))
-		}
 	}
 	return nil
 }
@@ -437,7 +434,7 @@ func ClientSendSmallFileList() error {
 			countBoltFileList = len(boltFileList)
 			atomic.AddInt32(&totalNum, int32(countBoltFileList))
 			atomic.AddInt64(&totalWriteSize, bsize)
-			err := createBolt(boltFileList, "rpcopy_client_"+Int2Str(countBoltFileList)+".db")
+			err := createBolt(boltFileList, strings.Join([]string{"rpcopy_client.db", Int2Str(countBoltFileList), GetNowTimeStr("His")}, "_"))
 			PrintError("ClientSendFiles:createBolt", err)
 			boltFileList = boltFileList[:0]
 			bsize = 0
@@ -446,7 +443,7 @@ func ClientSendSmallFileList() error {
 
 	if len(boltFileList) > 0 {
 		countBoltFileList = len(boltFileList)
-		err := createBolt(boltFileList, "rpcopy_client_"+Int2Str(countBoltFileList)+".db")
+		err := createBolt(boltFileList, strings.Join([]string{"rpcopy_client.db", Int2Str(countBoltFileList), GetNowTimeStr("His")}, "_"))
 		atomic.AddInt32(&totalNum, int32(countBoltFileList))
 		atomic.AddInt64(&totalWriteSize, bsize)
 		PrintError("ClientSendFiles:createBolt", err)

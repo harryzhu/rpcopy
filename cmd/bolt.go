@@ -38,6 +38,7 @@ func createBolt(filelist []string, dbName string) (err error) {
 
 	filelist2 := filelist
 
+	t1 := time.Now()
 	db.Batch(func(tx *bolt.Tx) error {
 		bkt := tx.Bucket([]byte("pbfiles"))
 		for _, relPath := range filelist2 {
@@ -59,13 +60,20 @@ func createBolt(filelist []string, dbName string) (err error) {
 			keyData := strings.Join([]string{"DATA", fkey}, "/")
 
 			err = bkt.Put([]byte(keyInfo), ZstdBytes(bfinfo))
-			PrintError("createBolt:Put", err)
+			if err != nil {
+				PrintError("createBolt:info:Put", err)
+				continue
+			}
+
 			err = bkt.Put([]byte(keyData), ZstdBytes(bdata))
-			PrintError("createBolt:Put", err)
+			if err != nil {
+				PrintError("createBolt:data:Put", err)
+			}
 
 		}
 		return nil
 	})
+	PrintlnInfo("createBolt: Elapse:", time.Since(t1))
 
 	db.Close()
 

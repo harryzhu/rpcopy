@@ -23,6 +23,7 @@ var serverCmd = &cobra.Command{
 		}
 		bootstrap()
 		MakeDirs(TargetDir)
+		MakeDirs(LogDir)
 
 		finfo, err := os.Stat(TargetDir)
 		if err != nil {

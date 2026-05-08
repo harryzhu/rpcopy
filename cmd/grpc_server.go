@@ -234,7 +234,8 @@ func pbFileDirSymlinkSave(pbIn *pb.File) (respStatus int32) {
 }
 
 func pbMiscBoltSave(pbIn *pb.Misc) (statusCode int, err error) {
-	boltPath, _ := filepath.Abs(filepath.Join(LogDir, hashString([]byte("rpcopy_server.db"))))
+	boltPath, _ := filepath.Abs(filepath.Join(LogDir,
+		hashString([]byte(strings.Join([]string{"rpcopy_server.db", GetNowTimeStr("His")}, "_")))))
 	if FileExists(boltPath) {
 		err := os.Remove(boltPath)
 		PrintError("pbMiscBoltSave:os.Remove", err)
@@ -262,9 +263,11 @@ func pbMiscBoltSave(pbIn *pb.Misc) (statusCode int, err error) {
 	}
 	defer db.Close()
 
+	t1 := time.Now()
+	wg := sync.WaitGroup{}
 	db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("pbfiles"))
-		c := b.Cursor()
+		bkt := tx.Bucket([]byte("pbfiles"))
+		c := bkt.Cursor()
 		for k, v := c.First(); k != nil; k, v = c.Next() {
 			key := string(k)
 			if strings.HasPrefix(key, "INFO/") {
@@ -285,40 +288,49 @@ func pbMiscBoltSave(pbIn *pb.Misc) (statusCode int, err error) {
 
 				dkey := strings.Join([]string{"DATA", fpath}, "/")
 				var fdata []byte
-				db.View(func(tx *bolt.Tx) error {
-					b := tx.Bucket([]byte("pbfiles"))
-					bv := b.Get([]byte(dkey))
-					if bv != nil {
-						fdata, err = UnZstdBytes(bv)
-						if err != nil {
-							PrintError("pbFileBoltSave:fdata:UnZstdBytes", err)
-						}
+				bv := bkt.Get([]byte(dkey))
+				if bv != nil {
+					fdata, err = UnZstdBytes(bv)
+					if err != nil {
+						PrintError("pbFileBoltSave:fdata:UnZstdBytes", err)
 					}
-					return nil
-				})
-				dstPath := ToUnixSlash(filepath.Join(TargetDir, fpath))
-				MakeDirs(filepath.Dir(dstPath))
-				err1 := os.WriteFile(dstPath, fdata, os.ModePerm)
-				PrintError("pbFileBoltSave:os.WriteFile", err1)
-				err2 := os.Chmod(dstPath, finfo.Mode)
-				PrintError("pbFileBoltSave:os.Chmod", err2)
-				err3 := os.Chtimes(dstPath, finfo.ModTime, finfo.ModTime)
-				PrintError("pbFileBoltSave:os.Chtimes", err3)
-				//
-				if err1 != nil || err2 != nil || err3 != nil {
-					safePbSaveStatus.Store(fpath, int64(500))
-					continue
 				}
 
-				if FileExists(dstPath) {
-					DebugInfo("pbFileBoltSave: exists", dstPath)
-					safePbSaveStatus.Store(fpath, int64(201))
-				}
+				dstPath := ToUnixSlash(filepath.Join(TargetDir, fpath))
+
+				wg.Add(1)
+				go func(dstPath string, fdata []byte, finfo FileInfoLite) error {
+					defer wg.Done()
+
+					MakeDirs(filepath.Dir(dstPath))
+					err := os.WriteFile(dstPath, fdata, os.ModePerm)
+					if err != nil {
+						PrintError("pbFileBoltSave:os.WriteFile", err)
+						return err
+					}
+
+					err1 := os.Chmod(dstPath, finfo.Mode)
+					PrintError("pbFileBoltSave:os.Chmod", err1)
+					err2 := os.Chtimes(dstPath, finfo.ModTime, finfo.ModTime)
+					PrintError("pbFileBoltSave:os.Chtimes", err2)
+					//
+					if err1 != nil || err2 != nil {
+						safePbSaveStatus.Store(fpath, int64(500))
+					}
+
+					if FileExists(dstPath) {
+						safePbSaveStatus.Store(fpath, int64(201))
+					}
+					return nil
+				}(dstPath, fdata, finfo)
+
 			}
 
 		}
 		return nil
 	})
+	wg.Wait()
+	PrintlnInfo("pbMiscBoltSave: Elapse:", time.Since(t1))
 
 	db.Close()
 	if FileExists(boltPath) {

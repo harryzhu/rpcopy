@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/klauspost/compress/zstd"
@@ -56,6 +57,25 @@ func FormatPrint(ftype string, key string, args ...any) error {
 
 	}
 	fmt.Printf(f0, key, strings.Join(s, " "))
+	return nil
+}
+
+func PrintProgress() error {
+	flag := int32(0)
+	for {
+		flag = atomic.LoadInt32(&progressFlag)
+		if flag == 3 {
+			break
+		}
+		time.Sleep(2 * time.Second)
+		curTotalNum := atomic.LoadInt32(&totalNum)
+		curTotalWriteSize := atomic.LoadInt64(&totalWriteSize)
+		if IsDebug == false {
+			PrintSpinner2(strings.Join([]string{Int32Str(curTotalNum), " => "}, ""),
+				strings.Join([]string{Int64Str(curTotalWriteSize >> 20), " MB"}, ""))
+		}
+	}
+
 	return nil
 }
 
@@ -264,14 +284,14 @@ func GetNowUnixMilli() int64 {
 
 func GetNowTimeStr(f string) string {
 	switch f {
-	case "YmdHis":
-		return time.Now().Format("20060102150405")
+	case "Ymd":
+		return time.Now().Format("20060102")
 	case "H":
 		return time.Now().Format("15")
 	case "His":
 		return time.Now().Format("150405")
 	default:
-		return time.Now().Format("20060102")
+		return time.Now().Format("20060102150405")
 	}
 
 }

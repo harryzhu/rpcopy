@@ -47,6 +47,7 @@ var rootCmd = &cobra.Command{
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		SourceDir = strings.TrimRight(ToUnixSlash(SourceDir), "/")
 		TargetDir = strings.TrimRight(ToUnixSlash(TargetDir), "/")
+
 		timeStart = GetNowUnix()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
@@ -56,6 +57,7 @@ var rootCmd = &cobra.Command{
 		timeStop = GetNowUnix()
 		if timeStart > 0 && timeStop > 0 {
 			timeDuration = timeStop - timeStart
+
 			if timeDuration > 2 {
 				// ClientSendFiles: clientStream.CloseSend()
 				// Wait for 2 seconds before send
@@ -65,9 +67,10 @@ var rootCmd = &cobra.Command{
 				totalSpeed = int64(math.Ceil(float64(totalWriteSize)/float64(timeDuration))) >> 20
 				fmt.Println(SEP)
 				fmt.Printf("::: Copied: %v, Size: %v MB, Speed: %v MB/s\n", totalNum, totalWriteSize>>20, totalSpeed)
+
+				fmt.Printf("\n***** Elapse: %v (sec) *****\n", timeDuration)
 			}
 
-			fmt.Printf("\n***** Elapse: %v (sec) *****\n", timeDuration)
 		}
 
 	},
@@ -87,5 +90,5 @@ func init() {
 	//
 	rootCmd.PersistentFlags().StringVar(&Host, "host", "0.0.0.0", "host ip")
 	rootCmd.PersistentFlags().StringVar(&Port, "port", "9527", "port")
-	rootCmd.PersistentFlags().StringVar(&LogDir, "log-dir", ".", "log dir")
+	rootCmd.PersistentFlags().StringVar(&LogDir, "log-dir", "./logs", "log dir")
 }

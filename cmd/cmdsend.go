@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -32,6 +33,7 @@ var sendCmd = &cobra.Command{
 		argsValidate()
 		bootstrap()
 
+		MakeDirs(LogDir)
 		timeStart = GetNowUnix()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
@@ -41,21 +43,31 @@ var sendCmd = &cobra.Command{
 		}
 		SetFileList()
 
+		atomic.StoreInt32(&progressFlag, 0)
+
 		wg := sync.WaitGroup{}
-		wg.Add(3)
+		wg.Add(4)
 		go func() {
 			defer wg.Done()
 			ClientSendSmallFileList()
+			atomic.AddInt32(&progressFlag, 1)
 		}()
 
 		go func() {
 			defer wg.Done()
 			ClientSendLargeFileList()
+			atomic.AddInt32(&progressFlag, 1)
 		}()
 
 		go func() {
 			defer wg.Done()
 			ClientSetDirSymList()
+			atomic.AddInt32(&progressFlag, 1)
+		}()
+
+		go func() {
+			defer wg.Done()
+			PrintProgress()
 		}()
 
 		wg.Wait()
