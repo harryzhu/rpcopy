@@ -12,12 +12,23 @@ import (
 	"os"
 	"path/filepath"
 	pb "pb"
+	"sort"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"time"
 
 	"google.golang.org/grpc"
+)
+
+var (
+	chanChunkSendStatus chan int = make(chan int, 1)
+	gClient             pb.FileTransferClient
+	gClientStream       pb.FileTransfer_StreamReceiveClient
+	gClientConn         *grpc.ClientConn
+	//
+	sendFileList  map[string]int64
+	smallFileList []string
+	largeFileList []string
 )
 
 func finfo2FileInfoLite(finfo fs.FileInfo) []byte {
@@ -62,7 +73,7 @@ func file2pbFile(fpath string, finfo fs.FileInfo, ftype string) *pb.File {
 	pbFile.Ftype = []byte(ftype)
 	pbFile.ChunkNum = 0
 	pbFile.Data = nil
-	if ftype == "file" {
+	if ftype == "file" || ftype == "bolt" {
 		pbFile.Fsum = []byte(hashFile(fpath))
 	} else {
 		pbFile.Fsum = nil
@@ -82,97 +93,60 @@ func file2pbFile(fpath string, finfo fs.FileInfo, ftype string) *pb.File {
 }
 
 func pbFileChunkSend(fpath string, pbFile *pb.File, stream pb.FileTransfer_StreamReceiveClient) error {
+	fp, err := os.Open(fpath)
+	if err != nil {
+		PrintError("pbFileChunkSend:os.Open", err)
+		return err
+	}
+	defer fp.Close()
 
-	var chanChunkSendStatus chan int = make(chan int, 1)
-	wg := sync.WaitGroup{}
-	wg.Add(2)
+	reader := bufio.NewReaderSize(fp, chunkSize)
+	buffer := make([]byte, chunkSize)
 
-	go func(stream pb.FileTransfer_StreamReceiveClient) error {
-		defer wg.Done()
-		for {
-			cs := <-chanChunkSendStatus
-			if cs == -1 {
-				break
-			}
-			resp, err := stream.Recv()
-			if err != nil {
-				PrintError("pbFileChunkSend:stream.Recv", err)
-				chanChunkSendStatus <- -1
-			}
+	atomic.AddInt32(&chanNum, 1)
 
-			DebugInfo("pbFileChunkSend:stream.Recv", resp.Status)
-		}
-		return nil
-	}(stream)
+	channum := atomic.LoadInt32(&chanNum)
+	if channum > 3 {
+		atomic.StoreInt32(&chanNum, 0)
+		channum = 0
+	}
+	//channum = 0
+	chunkTotal := pbFile.Chunks
+	chunkNum := 0
 
-	go func(fpath string, pbFile *pb.File, stream pb.FileTransfer_StreamReceiveClient) error {
-		defer wg.Done()
+	for {
+		n, err := reader.Read(buffer)
 
-		fp, err := os.Open(fpath)
-		if err != nil {
-			PrintError("pbFileChunkSend:os.Open", err)
-			chanChunkSendStatus <- -1
+		if err != nil && err != io.EOF {
+			PrintError("pbFileChunkSend:reader.Read", err)
 			return err
 		}
-		defer fp.Close()
 
-		reader := bufio.NewReaderSize(fp, chunkSize)
-		buffer := make([]byte, chunkSize)
-
-		atomic.AddInt32(&chanNum, 1)
-
-		channum := atomic.LoadInt32(&chanNum)
-		if channum > 3 {
-			atomic.StoreInt32(&chanNum, 0)
-			channum = 0
+		if n == 0 || err == io.EOF {
+			break
 		}
-		//channum = 0
-		chunkTotal := pbFile.Chunks
-		chunkNum := 0
 
-		for {
-			n, err := reader.Read(buffer)
-
-			if err != nil && err != io.EOF {
-				chanChunkSendStatus <- -1
-				break
-			}
-
-			if n == 0 || err == io.EOF {
-				chanChunkSendStatus <- -1
-				break
-			}
-
-			if IsZstdSend {
-				pbFile.Data = ZstdBytes(buffer[:n])
-				pbFile.Zstd = true
-			} else {
-				pbFile.Data = buffer[:n]
-				pbFile.Zstd = false
-			}
-
-			pbFile.ChunkNum = int32(chunkNum)
-			pbFile.ChanNum = channum
-
-			err = stream.Send(pbFile)
-			if err != nil {
-				PrintError("pbFileChunkSend:stream.Send", err)
-				chanChunkSendStatus <- -1
-				break
-			}
-
-			DebugInfo("pbFileChunkSend: ChanNum", chunkNum, " / ", chunkTotal, " : ", n)
-			chunkNum++
-
+		if IsZstdSend {
+			pbFile.Data = ZstdBytes(buffer[:n])
+			pbFile.Zstd = true
+		} else {
+			pbFile.Data = buffer[:n]
+			pbFile.Zstd = false
 		}
-		// DebugInfo("pbFileChunkSend: ONE_DONE", chunkNum, " / ", chunkTotal, "=>", channum,
-		// 	" ::", fpath, " ==> Chunks=", pbFile.Chunks, " <= Size:", pbFile.Fsize, " <= ", float64(pbFile.Fsize)/float64(chunkSize))
-		// //
-		chanChunkSendStatus <- -1
-		return nil
-	}(fpath, pbFile, stream)
 
-	wg.Wait()
+		pbFile.ChunkNum = int32(chunkNum)
+		pbFile.ChanNum = channum
+
+		err = stream.Send(pbFile)
+		if err != nil {
+			PrintError("pbFileChunkSend:stream.Send", err)
+			return err
+		}
+
+		DebugInfo("pbFileChunkSend: ChanNum", chunkNum, " / ", chunkTotal, " : ", n)
+		chunkNum++
+
+	}
 
 	DebugInfo("pbFileChunkSend", "ONE_DONE")
 
@@ -185,49 +159,68 @@ func pbFileHead(pbFile *pb.File, clientHead pb.FileTransferClient) *pb.File {
 	return resp
 }
 
-func GetClientStreamConn() (client pb.FileTransferClient, clientStream pb.FileTransfer_StreamReceiveClient, conn *grpc.ClientConn, err error) {
+func SetClientStreamConn() (err error) {
 	hostPort := strings.Join([]string{Host, Port}, ":")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	conn, err = grpc.DialContext(ctx, hostPort, grpc.WithInsecure(), grpc.WithBlock(),
+	gClientConn, err = grpc.DialContext(ctx, hostPort, grpc.WithInsecure(), grpc.WithBlock(),
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxMessageSize), grpc.MaxCallSendMsgSize(MaxMessageSize)))
-	if err != nil {
-		PrintError("ClientSendFiles", err)
-		return nil, nil, nil, err
-	}
-	//defer conn.Close()
-
-	client = pb.NewFileTransferClient(conn)
-	if client == nil {
-		return nil, nil, nil, err
-	}
-
-	clientStream, err = client.StreamReceive(context.Background())
-	if err != nil {
-		PrintError("ClientSendFiles", err)
-		return nil, nil, nil, err
-	}
-
-	return client, clientStream, conn, nil
-}
-
-func ClientSendFiles() error {
-	client, clientStream, conn, err := GetClientStreamConn()
 	if err != nil {
 		PrintError("ClientSendFiles", err)
 		return err
 	}
-	defer conn.Close()
+	//defer gClientConn.Close()
 
+	gClient = pb.NewFileTransferClient(gClientConn)
+	if gClient == nil {
+		return NewError("gClient cannot be empty")
+	}
+
+	gClientStream, err = gClient.StreamReceive(context.Background())
+	if err != nil {
+		PrintError("ClientSendFiles", err)
+		return err
+	}
+
+	return nil
+}
+
+// run after ClientSendFiles
+func ClientSendDirSymlink() error {
+	DebugInfo("ClientSendFiles: Sending", "dir list")
+	for k, v := range dirList {
+		pbFile := file2pbFile(k, v, "dir")
+		//
+		err := gClientStream.Send(pbFile)
+		if err != nil {
+			PrintError("ClientSendFiles", err)
+			continue
+		}
+	}
+
+	//
+	DebugInfo("ClientSendFiles: Sending", "sym list")
+	for slink, sfile := range symList {
+		pbFile := file2pbFile(slink, nil, "symlink")
+		pbFile.Comment = []byte(sfile)
+		//
+		err := gClientStream.Send(pbFile)
+		if err != nil {
+			PrintError("ClientSendFiles", err)
+			continue
+		}
+	}
+	return nil
+}
+
+func ClientSetDirSymList() error {
 	SourceDir = ToUnixSlash(SourceDir)
-
 	filepath.Walk(SourceDir, func(fpath string, finfo fs.FileInfo, err error) error {
 		if err != nil {
 			PrintError("ClientSendFiles: filepath.Walk", err)
 			return err
 		}
-
 		fpath = ToUnixSlash(fpath)
 
 		if fpath == "." || fpath == ".." || fpath == "" {
@@ -255,72 +248,9 @@ func ClientSendFiles() error {
 			}
 		}
 
-		if isCopyNeeded(fpath, finfo) == false {
-			return nil
-		}
-
-		pbFile := file2pbFile(fpath, finfo, "file")
-		if IsOverwrite == false {
-			pbRemote := pbFileHead(pbFile, client)
-
-			if pbRemote == nil {
-				return nil
-			}
-
-			if pbRemote.Status == 200 {
-				DebugInfo("ClientSendFiles: SKIP", string(pbRemote.Path))
-				return nil
-			}
-		}
-
-		totalNum++
-		totalWriteSize += finfo.Size()
-
-		err = pbFileChunkSend(fpath, pbFile, clientStream)
-		PrintError("ClientSendFiles:wgSend:pbFileChunkSend", err)
-		if totalNum%10 == 0 {
-			PrintSpinner2(strings.Join([]string{Int2Str(totalNum), " => "}, ""),
-				strings.Join([]string{Int64Str(totalWriteSize >> 20), " MB"}, ""))
-		}
 		return nil
 	})
-
-	//
-	for k, v := range dirList {
-		pbFile := file2pbFile(k, v, "dir")
-		//
-		err = clientStream.Send(pbFile)
-		if err != nil {
-			PrintError("ClientSendFiles", err)
-			continue
-		}
-
-	}
-
-	//
-	for slink, sfile := range symList {
-		pbFile := file2pbFile(slink, nil, "symlink")
-		pbFile.Comment = []byte(sfile)
-		//
-		err = clientStream.Send(pbFile)
-		if err != nil {
-			PrintError("ClientSendFiles", err)
-			continue
-		}
-
-	}
-	//
-	sendFinishSignal(clientStream)
-
-	sendReportSignal(client)
-	//
-	time.Sleep(2 * time.Second)
-	DebugWarn("ClientSendFiles: CloseSend", "............")
-	err = clientStream.CloseSend()
-	if err != nil {
-		PrintError("ClientSendFiles: CloseSend", err)
-		return err
-	}
+	//sendFinishSignal(gClientStream)
 
 	return nil
 }
@@ -379,7 +309,7 @@ func sendReportSignal(client pb.FileTransferClient) error {
 		return err
 	}
 
-	var m map[string]int
+	var m map[string]int64
 	if respMisc.Data != nil {
 		m2, err := Byte2Map(respMisc.Data, m)
 		PrintError("sendReportSignal:Byte2Map", err)
@@ -398,6 +328,130 @@ func sendReportSignal(client pb.FileTransferClient) error {
 	failureWriter.Close()
 
 	DebugInfo("sendReportSignal", "Done.")
+
+	return nil
+}
+
+func SetFileList() error {
+	DebugInfo("SetFileList", "Getting targetFileList ...")
+	respMisc, err := gClient.GetMisc(context.Background(), &pb.Misc{Mtype: "targetFileList"})
+	if err != nil {
+		PrintError("SetFileList:client.GetMisc", err)
+		return err
+	}
+	var tfl map[string]int64
+	var targetFileList map[string]int64
+	if respMisc != nil {
+		targetFileList, err = Byte2Map(respMisc.Data, tfl)
+		if err != nil {
+			PrintError("SetFileList: Byte2Map", err)
+			return err
+		}
+	}
+
+	sourceFileList := GetFileList(SourceDir, true)
+	DebugInfo("SetFileList:targetFileList", len(targetFileList))
+	DebugInfo("SetFileList:sourceFileList", len(sourceFileList))
+
+	sendFileList = make(map[string]int64, len(sourceFileList)-len(targetFileList))
+	for spath, size := range sourceFileList {
+		if _, ok := targetFileList[spath]; !ok {
+			sendFileList[spath] = size
+		}
+	}
+
+	DebugInfo("SetFileList:sendFileList", len(sendFileList))
+	for spath, size := range sendFileList {
+		if size < BoltSplitSize {
+			smallFileList = append(smallFileList, spath)
+		} else {
+			largeFileList = append(largeFileList, spath)
+		}
+	}
+	DebugInfo("SetFileList:smallFileList", len(smallFileList))
+	DebugInfo("SetFileList:largeFileList", len(largeFileList))
+
+	fdump := filepath.Join(LogDir, GetNowTimeStr("Ymd"), strings.Join([]string{GetNowTimeStr("H"), "rpcopy", "send_list.txt"}, "_"))
+	dumpWriter, err := os.OpenFile(fdump, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.ModePerm)
+	if err != nil {
+		PrintError("SetFileList: Dump sendFileList", err)
+		return err
+	}
+
+	var sflKeys []string
+
+	for k := range sendFileList {
+		sflKeys = append(sflKeys, k)
+	}
+
+	sort.Strings(sflKeys)
+
+	for _, k := range sflKeys {
+		line := fmt.Sprintf("%s\n", k)
+		dumpWriter.WriteString(line)
+	}
+	dumpWriter.Close()
+
+	return nil
+}
+
+func ClientSendLargeFileList() error {
+	for _, spath := range largeFileList {
+		fpath := ToUnixSlash(filepath.Join(SourceDir, spath))
+		finfo, err := os.Stat(fpath)
+		if err != nil {
+			PrintError("ClientSendLargeFileList", err)
+			continue
+		}
+		pbFile := file2pbFile(fpath, finfo, "file")
+
+		atomic.AddInt32(&totalNum, 1)
+		atomic.AddInt64(&totalWriteSize, finfo.Size())
+
+		DebugInfo("ClientSendLargeFileList: Sending", fpath)
+		err = pbFileChunkSend(fpath, pbFile, gClientStream)
+		PrintError("ClientSendLargeFileList: pbFileChunkSend", err)
+
+		curTotalNum := atomic.LoadInt32(&totalNum)
+		curTotalWriteSize := atomic.LoadInt64(&totalWriteSize)
+		if IsDebug == false && curTotalNum%5 == 0 {
+			PrintSpinner2(strings.Join([]string{Int32Str(curTotalNum), " => "}, ""),
+				strings.Join([]string{Int64Str(curTotalWriteSize >> 20), " MB"}, ""))
+		}
+	}
+	return nil
+}
+
+func ClientSendSmallFileList() error {
+	var boltFileList []string
+	var bsize int64 = 0
+	var countBoltFileList int
+	for _, spath := range smallFileList {
+		bsize += sendFileList[spath]
+		if bsize < MaxBoltSize {
+			boltFileList = append(boltFileList, spath)
+		}
+
+		if bsize >= MaxBoltSize {
+			DebugInfo("ClientSendFiles: bsize", bsize>>20, " MB, MaxBoltSize= ", MaxBoltSize>>20, " MB")
+			countBoltFileList = len(boltFileList)
+			atomic.AddInt32(&totalNum, int32(countBoltFileList))
+			atomic.AddInt64(&totalWriteSize, bsize)
+			err := createBolt(boltFileList, "rpcopy_client_"+Int2Str(countBoltFileList)+".db")
+			PrintError("ClientSendFiles:createBolt", err)
+			boltFileList = boltFileList[:0]
+			bsize = 0
+		}
+	}
+
+	if len(boltFileList) > 0 {
+		countBoltFileList = len(boltFileList)
+		err := createBolt(boltFileList, "rpcopy_client_"+Int2Str(countBoltFileList)+".db")
+		atomic.AddInt32(&totalNum, int32(countBoltFileList))
+		atomic.AddInt64(&totalWriteSize, bsize)
+		PrintError("ClientSendFiles:createBolt", err)
+	}
+	//
 
 	return nil
 }

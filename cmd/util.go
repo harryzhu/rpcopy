@@ -156,6 +156,15 @@ func isSymlink(src string) bool {
 	return false
 }
 
+func isPathValid(p string) bool {
+	//ban := []string{":", "\\",  "\"", "*", "?", "<", ">", "|"}
+	ban := `:\\*\">?<|`
+	if strings.ContainsAny(p, ban) {
+		return false
+	}
+	return true
+}
+
 func getSymlink(src string) string {
 	linfo, err := os.Lstat(src)
 	if err != nil {
@@ -201,7 +210,7 @@ func MakeSymlink(srcFile string, dstLink string) error {
 	return nil
 }
 
-func Map2Byte(m map[string]int) []byte {
+func Map2Byte(m map[string]int64) []byte {
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
 	err := enc.Encode(&m)
@@ -209,7 +218,7 @@ func Map2Byte(m map[string]int) []byte {
 	return buf.Bytes()
 }
 
-func Byte2Map(b []byte, m map[string]int) (map[string]int, error) {
+func Byte2Map(b []byte, m map[string]int64) (map[string]int64, error) {
 	buf := bytes.NewBuffer(b)
 	dec := gob.NewDecoder(buf)
 	err := dec.Decode(&m)
@@ -222,6 +231,10 @@ func Byte2Map(b []byte, m map[string]int) (map[string]int, error) {
 
 func Int2Str(n int) string {
 	return strconv.Itoa(n)
+}
+
+func Int32Str(n int32) string {
+	return fmt.Sprintf("%v", n)
 }
 
 func Int64Int(n int64) int {
@@ -393,4 +406,35 @@ func isCopyNeeded(fpath string, finfo fs.FileInfo) bool {
 	}
 
 	return true
+}
+
+func GetFileList(dirPath string, withFilter bool) (filelist map[string]int64) {
+	filelist = make(map[string]int64, 256)
+	dirPath = strings.TrimSuffix(ToUnixSlash(dirPath), "/")
+	filepath.Walk(dirPath, func(fpath string, finfo fs.FileInfo, err error) error {
+		if err != nil {
+			PrintError("GetFileList: filepath.Walk", err)
+			return err
+		}
+		fpath = ToUnixSlash(fpath)
+		if fpath == "." || fpath == ".." || fpath == "" {
+			return nil
+		}
+
+		if finfo.IsDir() {
+			return nil
+		}
+
+		if withFilter {
+			if isCopyNeeded(fpath, finfo) == false {
+				return nil
+			}
+		}
+
+		fkey := strings.TrimPrefix(strings.TrimPrefix(fpath, dirPath), "/")
+		filelist[fkey] = finfo.Size()
+
+		return nil
+	})
+	return filelist
 }

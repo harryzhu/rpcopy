@@ -4,4 +4,6 @@ cp dist/macos_arm/rpcopy /Volumes/harry/vendor/bin/
 
 # CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o dist/macos_intel/gofastcopy -ldflags "-w -s" main.go
 # CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o dist/linux_amd64/gofastcopy -ldflags "-w -s" main.go
-# CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o dist/windows_amd64/gofastcopy.exe -ldflags "-w -s" main.go
+CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o dist/windows_amd64/rpcopy.exe -ldflags "-w -s" main.go
+rm -f /Volumes/192.168.0.108/t5/rpcopy.exe
+cp dist/windows_amd64/rpcopy.exe /Volumes/192.168.0.108/t5/

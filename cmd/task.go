@@ -5,13 +5,21 @@ import (
 )
 
 func getChanFileToDisk(pbIn *pb.File) error {
-	statusCode, err := pbFileChunkSave(pbIn)
+	if isPathValid(string(pbIn.Path)) == false {
+		err := NewError("path invalid: ", string(pbIn.Path))
+		PrintError("getChanFileToDisk", err)
 
-	pbSaveStatus[string(pbIn.Path)] = statusCode
+		safePbSaveStatus.Store(string(pbIn.Path), int64(412))
+		return err
+	}
+
+	statusCode, err := pbFileChunkSave(pbIn)
 
 	if err != nil {
 		PrintError("getChanFileToDisk", err)
-		pbSaveStatus[string(pbIn.Path)] = 500
+		safePbSaveStatus.Store(string(pbIn.Path), int64(500))
+	} else {
+		safePbSaveStatus.Store(string(pbIn.Path), int64(statusCode))
 	}
 
 	return nil
@@ -24,7 +32,7 @@ func taskChanFile() error {
 			DebugInfo("_COPYSTATUS:chanFile", "ALL_DONE")
 			continue
 		}
-		DebugInfo("_COPYSTATUS:chanFile", ele.ChanNum, ": ", string(ele.Path))
+		DebugInfo("taskChanFile", ele.ChanNum, ": ", string(ele.Path))
 
 		getChanFileToDisk(ele)
 
@@ -40,7 +48,7 @@ func taskChanFile1() error {
 			DebugInfo("_COPYSTATUS:chanFile1", "ALL_DONE")
 			continue
 		}
-		DebugInfo("_COPYSTATUS:chanFile1", ele.ChanNum, ": ", string(ele.Path))
+		DebugInfo("taskChanFile1", ele.ChanNum, ": ", string(ele.Path))
 
 		getChanFileToDisk(ele)
 
@@ -56,7 +64,7 @@ func taskChanFile2() error {
 			DebugInfo("_COPYSTATUS:chanFile2", "ALL_DONE")
 			continue
 		}
-		DebugInfo("_COPYSTATUS:chanFile2", ele.ChanNum, ": ", string(ele.Path))
+		DebugInfo("taskChanFile2", ele.ChanNum, ": ", string(ele.Path))
 
 		getChanFileToDisk(ele)
 
@@ -72,7 +80,7 @@ func taskChanFile3() error {
 			DebugInfo("_COPYSTATUS:chanFile3", "ALL_DONE")
 			continue
 		}
-		DebugInfo("_COPYSTATUS:chanFile3", ele.ChanNum, ": ", string(ele.Path))
+		DebugInfo("taskChanFile3", ele.ChanNum, ": ", string(ele.Path))
 
 		getChanFileToDisk(ele)
 

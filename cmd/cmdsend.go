@@ -35,14 +35,45 @@ var sendCmd = &cobra.Command{
 		timeStart = GetNowUnix()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		err := SetClientStreamConn()
+		if err != nil {
+			FatalError("send: client", err)
+		}
+		SetFileList()
+
 		wg := sync.WaitGroup{}
-		wg.Add(1)
+		wg.Add(3)
 		go func() {
 			defer wg.Done()
-			ClientSendFiles()
+			ClientSendSmallFileList()
+		}()
+
+		go func() {
+			defer wg.Done()
+			ClientSendLargeFileList()
+		}()
+
+		go func() {
+			defer wg.Done()
+			ClientSetDirSymList()
 		}()
 
 		wg.Wait()
+
+		tsDir := GetNowUnix()
+		DebugInfo("ClientSendDirSymlink: syncing", "dir & symlink")
+		ClientSendDirSymlink()
+		DebugInfo("ClientSendDirSymlink: elapse", GetNowUnix()-tsDir)
+
+		DebugInfo("sendReportSignal: Grabbing", "report")
+		sendReportSignal(gClient)
+		//
+		time.Sleep(2 * time.Second)
+		DebugInfo("ClientSendFiles: CloseSend", "...")
+		err = gClientStream.CloseSend()
+		PrintError("ClientSendFiles: CloseSend", err)
+
+		gClientConn.Close()
 	},
 	PostRun: func(cmd *cobra.Command, args []string) {
 		timeStop = GetNowUnix()

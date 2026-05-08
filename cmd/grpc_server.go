@@ -9,8 +9,10 @@ import (
 	"path/filepath"
 	pb "pb"
 	"strings"
+	"sync"
 	"time"
 
+	bolt "go.etcd.io/bbolt"
 	"google.golang.org/grpc"
 )
 
@@ -20,7 +22,9 @@ var (
 	chanFile2 chan *pb.File = make(chan *pb.File, 4)
 	chanFile3 chan *pb.File = make(chan *pb.File, 4)
 	//
-	pbSaveStatus map[string]int = make(map[string]int, 1024)
+	safePbSaveStatus sync.Map
+	pbSaveStatus     map[string]int64 = make(map[string]int64, 2048)
+	//
 )
 
 type FileInfoLite struct {
@@ -35,14 +39,12 @@ func (s *FileTransferService) Head(ctx context.Context, pbIn *pb.File) (*pb.File
 	resp := NewPbFile()
 	resp.Path = pbIn.GetPath()
 	resp.Status = 0
+	resp.Data = nil
 	dstPath := pbGetTargetPath(pbIn)
 	if FileExists(dstPath) {
 		resp.Status = 200
 	}
 
-	if IsOverwrite {
-		resp.Status = 0
-	}
 	return &resp, nil
 }
 
@@ -54,7 +56,33 @@ func (s *FileTransferService) GetMisc(ctx context.Context, pbIn *pb.Misc) (*pb.M
 	reqType := pbIn.Mtype
 	switch reqType {
 	case "pbSaveStatus":
+		safePbSaveStatus.Range(func(k, v any) bool {
+			pbSaveStatus[k.(string)] = v.(int64)
+			return true
+		})
 		resp.Data = Map2Byte(pbSaveStatus)
+	case "targetFileList":
+		targetDirFileList := GetFileList(TargetDir, false)
+		if IsOverwrite {
+			targetDirFileList = make(map[string]int64, 0)
+		}
+		resp.Data = Map2Byte(targetDirFileList)
+	default:
+		resp.Data = []byte("ok")
+	}
+
+	return resp, nil
+}
+
+func (s *FileTransferService) PutMisc(ctx context.Context, pbIn *pb.Misc) (*pb.Misc, error) {
+	resp := &pb.Misc{}
+	resp.Mtype = pbIn.Mtype
+	resp.Data = nil
+
+	reqType := pbIn.Mtype
+	switch reqType {
+	case "pbBolt":
+		pbMiscBoltSave(pbIn)
 	default:
 		resp.Data = []byte("ok")
 	}
@@ -63,28 +91,28 @@ func (s *FileTransferService) GetMisc(ctx context.Context, pbIn *pb.Misc) (*pb.M
 }
 
 func (s *FileTransferService) StreamReceive(stream pb.FileTransfer_StreamReceiveServer) error {
+	emptyPbFile := NewPbFile()
 	for {
-		resp := NewPbFile()
-
 		pbIn, err := stream.Recv()
 		if err == io.EOF {
+			//DebugInfo("StreamReceive", err)
+			//continue
 			return nil
 		}
 
 		if err != nil {
-			PrintError("StreamReceive:err!=nil", err)
-			resp.Status = 500
-			resp.Comment = []byte(err.Error())
-			return stream.Send(&resp)
+			//PrintError("StreamReceive:err!=nil", err)
+			continue
 		}
 
 		if pbIn == nil {
-			resp.Status = 501
-			resp.Comment = []byte("StreamReceive:pbIn==nil")
-			return stream.Send(&resp)
+			PrintError("StreamReceive", NewError("pbIn==nil"))
+			continue
 		}
 
-		resp.Path = pbIn.Path
+		resp := emptyPbFile
+
+		//DebugInfo("StreamReceive: pbInPath", string(pbIn.Path))
 
 		reqType := string(pbIn.Ftype)
 
@@ -100,15 +128,16 @@ func (s *FileTransferService) StreamReceive(stream pb.FileTransfer_StreamReceive
 				chanFile <- pbIn
 			}
 
-			resp.Status = 201
+			continue
 		}
 
 		if reqType == "dir" || reqType == "symlink" {
 			resp.Status = pbFileDirSymlinkSave(pbIn)
+			continue
 		}
 
 		if reqType == "SIG" {
-			DebugInfo("StreamReceive=======", pbIn.Status)
+			DebugInfo("StreamReceive:SIG", pbIn.Status)
 			if pbIn.Status == -10 {
 				resp_10 := NewPbFile()
 				stat := Map2Byte(pbSaveStatus)
@@ -116,7 +145,8 @@ func (s *FileTransferService) StreamReceive(stream pb.FileTransfer_StreamReceive
 				resp_10.Data = stat
 				DebugInfo("StreamReceive: Map2Byte", len(stat))
 
-				return stream.Send(&resp_10)
+				stream.Send(&resp_10)
+				continue
 			}
 
 		}
@@ -160,7 +190,7 @@ func pbGetTargetPath(pbIn *pb.File) (dstPath string) {
 func pbFileDirSymlinkSave(pbIn *pb.File) (respStatus int32) {
 	if string(pbIn.Ftype) == "dir" {
 		dstPath := filepath.Join(TargetDir, string(pbIn.GetPath()))
-		DebugInfo("dir", dstPath)
+		//DebugInfo("dir", dstPath)
 		MakeDirs(dstPath)
 
 		if pbIn.Finfo != nil {
@@ -203,6 +233,103 @@ func pbFileDirSymlinkSave(pbIn *pb.File) (respStatus int32) {
 	return 206
 }
 
+func pbMiscBoltSave(pbIn *pb.Misc) (statusCode int, err error) {
+	boltPath, _ := filepath.Abs(filepath.Join(LogDir, hashString([]byte("rpcopy_server.db"))))
+	if FileExists(boltPath) {
+		err := os.Remove(boltPath)
+		PrintError("pbMiscBoltSave:os.Remove", err)
+		return 0, err
+	}
+
+	boltWriter, err := os.OpenFile(boltPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.ModePerm)
+	if err != nil {
+		PrintError("pbFileBoltSave: ", err)
+		return 500, err
+	}
+	//boltWriter.Truncate(0)
+	DebugInfo("pbFileBoltSave: pbIn.Data", len(pbIn.Data))
+	_, err = boltWriter.Write(pbIn.Data)
+	if err != nil {
+		PrintError("pbFileBoltSave: ", err)
+		return 500, err
+	}
+	boltWriter.Close()
+
+	db, err := bolt.Open(boltPath, 0600, &bolt.Options{Timeout: 1 * time.Second})
+	if err != nil {
+		PrintError("pbFileBoltSave:Open", err)
+		return 500, err
+	}
+	defer db.Close()
+
+	db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("pbfiles"))
+		c := b.Cursor()
+		for k, v := c.First(); k != nil; k, v = c.Next() {
+			key := string(k)
+			if strings.HasPrefix(key, "INFO/") {
+				fpath := strings.TrimPrefix(key, "INFO/")
+				safePbSaveStatus.Store(fpath, int64(500))
+				infov, err := UnZstdBytes(v)
+				if err != nil {
+					PrintError("pbFileBoltSave:finfo:UnZstdBytes", err)
+				}
+
+				var finfo FileInfoLite
+				if infov != nil {
+					finfo, err = fileInfoLite2Finfo(infov)
+					if err != nil {
+						PrintError("pbFileBoltSave:fileInfoLite2Finfo", err)
+					}
+				}
+
+				dkey := strings.Join([]string{"DATA", fpath}, "/")
+				var fdata []byte
+				db.View(func(tx *bolt.Tx) error {
+					b := tx.Bucket([]byte("pbfiles"))
+					bv := b.Get([]byte(dkey))
+					if bv != nil {
+						fdata, err = UnZstdBytes(bv)
+						if err != nil {
+							PrintError("pbFileBoltSave:fdata:UnZstdBytes", err)
+						}
+					}
+					return nil
+				})
+				dstPath := ToUnixSlash(filepath.Join(TargetDir, fpath))
+				MakeDirs(filepath.Dir(dstPath))
+				err1 := os.WriteFile(dstPath, fdata, os.ModePerm)
+				PrintError("pbFileBoltSave:os.WriteFile", err1)
+				err2 := os.Chmod(dstPath, finfo.Mode)
+				PrintError("pbFileBoltSave:os.Chmod", err2)
+				err3 := os.Chtimes(dstPath, finfo.ModTime, finfo.ModTime)
+				PrintError("pbFileBoltSave:os.Chtimes", err3)
+				//
+				if err1 != nil || err2 != nil || err3 != nil {
+					safePbSaveStatus.Store(fpath, int64(500))
+					continue
+				}
+
+				if FileExists(dstPath) {
+					DebugInfo("pbFileBoltSave: exists", dstPath)
+					safePbSaveStatus.Store(fpath, int64(201))
+				}
+			}
+
+		}
+		return nil
+	})
+
+	db.Close()
+	if FileExists(boltPath) {
+		err := os.Remove(boltPath)
+		PrintError("pbMiscBoltSave:os.Remove", err)
+		return 0, err
+	}
+
+	return 0, nil
+}
+
 func pbFileChunkSave(pbIn *pb.File) (statusCode int, err error) {
 	if TargetDir == "" {
 		return 500, NewError("TargetDir cannot be empty")
@@ -216,7 +343,7 @@ func pbFileChunkSave(pbIn *pb.File) (statusCode int, err error) {
 		return int(pbIn.Status), nil
 	}
 
-	dstPath := pbGetTargetPath(pbIn)
+	dstPath := ToUnixSlash(pbGetTargetPath(pbIn))
 	dstPathTemp := ToUnixSlash(strings.Join([]string{dstPath, "ing"}, "."))
 
 	fi := pbIn.GetFinfo()
@@ -246,12 +373,17 @@ func pbFileChunkSave(pbIn *pb.File) (statusCode int, err error) {
 
 	DebugInfo("--- pbFileChunkSave", chunkNum, "/", chunkTotal)
 	if pbIn.Data == nil {
+		PrintError("pbFileChunkSave", NewError("pbIn.Data cannot be empty"))
 		return 500, NewError("pbIn.Data cannot be empty")
 	}
 
 	var pbInData []byte
 	if pbIn.Zstd == true {
 		pbInData, err = UnZstdBytes(pbIn.Data)
+		if err != nil {
+			PrintError("pbFileChunkSave: UnZstdBytes", err)
+			return 500, err
+		}
 	} else {
 		pbInData = pbIn.Data
 	}
@@ -293,6 +425,7 @@ func pbFileChunkSave(pbIn *pb.File) (statusCode int, err error) {
 			return 500, err
 		}
 		DebugInfo("streamSaveFile: Saved", chunkTotal, ": ", string(pbIn.Path))
+		DebugInfo("streamSaveFile: chanFile0123", len(chanFile), ", ", len(chanFile1), ", ", len(chanFile2), ", ", len(chanFile3))
 
 		return 200, nil
 	}
