@@ -51,14 +51,14 @@
 #
 ```
 
-3) 加密传输
+3） 加密传输
 
 下载默认的服务端和客户端证书，`cert_files_rpcopy_com.zip`， 并将其解压在与 `rcopy` 同级目录的 `cert` 目录中，一共`5个证书`。
 
 或者用 仓库 中 `cert/_gen_cert/gen_cert.sh` 生成自己的域名证书, 需要先修改 `gen_cert.sh` 和 `openssl.conf` 中的域名，然后再运行 `./gen_cert.sh`
 
-服务端 只需要 cert/server 和 cert/ca.crt
-客户端 只需要 cert/client 和 cert/ca.crt
+服务端 只需要 `cert/server` 和 `cert/ca.crt` 3个证书
+客户端 只需要 `cert/client` 和 `cert/ca.crt` 3个证书
 
 然后带有 --with-tls 启动
 
