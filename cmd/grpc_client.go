@@ -159,7 +159,7 @@ func pbFileChunkSend(fpath string, pbFile *pb.File, stream pb.FileTransfer_Strea
 }
 
 func serverPing() (string, error) {
-	respMisc, err := gClient.GetMisc(context.Background(), &pb.Misc{Mtype: "ping", Data: []byte("ping")})
+	respMisc, err := gClient.GetMisc(context.Background(), &pb.Misc{Mtype: "ping", Data: []byte(strings.Join([]string{"ping from", Host}, " <= "))})
 	if err != nil {
 		PrintError("Ping:", err)
 		return "", err
@@ -491,6 +491,7 @@ func ClientSendSmallFileList() error {
 	var boltFileList []string
 	var bsize int64 = 0
 	var countBoltFileList int
+
 	for _, spath := range smallFileList {
 		bsize += sendFileList[spath]
 		if bsize < MaxBoltSize {
@@ -502,7 +503,7 @@ func ClientSendSmallFileList() error {
 			countBoltFileList = len(boltFileList)
 			atomic.AddInt32(&totalNum, int32(countBoltFileList))
 			atomic.AddInt64(&totalWriteSize, bsize)
-			err := createBolt(boltFileList, strings.Join([]string{"rpcopy_client.db", Int2Str(countBoltFileList), GetNowTimeStr("His")}, "_"))
+			err := createBolt(boltFileList, strings.Join([]string{"rpcopy_client.db", Int2Str(countBoltFileList), Int64Str(GetNowUnixMilli())}, "_"))
 			PrintError("ClientSendFiles:createBolt", err)
 			boltFileList = boltFileList[:0]
 			bsize = 0
@@ -511,7 +512,7 @@ func ClientSendSmallFileList() error {
 
 	if len(boltFileList) > 0 {
 		countBoltFileList = len(boltFileList)
-		err := createBolt(boltFileList, strings.Join([]string{"rpcopy_client.db", Int2Str(countBoltFileList), GetNowTimeStr("His")}, "_"))
+		err := createBolt(boltFileList, strings.Join([]string{"rpcopy_client.db", Int2Str(countBoltFileList), Int64Str(GetNowUnixMilli())}, "_"))
 		atomic.AddInt32(&totalNum, int32(countBoltFileList))
 		atomic.AddInt64(&totalWriteSize, bsize)
 		PrintError("ClientSendFiles:createBolt", err)

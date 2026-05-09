@@ -71,8 +71,8 @@ func (s *FileTransferService) GetMisc(ctx context.Context, pbIn *pb.Misc) (*pb.M
 		}
 		resp.Data = Map2Byte(targetDirFileList)
 	case "ping":
-		PrintlnInfo("HealthCheck request from client", string(pbIn.Data))
-		if string(pbIn.Data) == "ping" {
+		PrintlnInfo("HealthCheck from Client", string(pbIn.Data))
+		if strings.Contains(string(pbIn.Data), "ping") {
 			resp.Data = []byte("pong")
 		} else {
 			resp.Data = []byte("error")
@@ -246,7 +246,7 @@ func pbFileDirSymlinkSave(pbIn *pb.File) (respStatus int32) {
 
 func pbMiscBoltSave(pbIn *pb.Misc) (statusCode int, err error) {
 	boltPath, _ := filepath.Abs(filepath.Join(LogDir,
-		hashString([]byte(strings.Join([]string{"rpcopy_server.db", GetNowTimeStr("His")}, "_")))))
+		hashString([]byte(strings.Join([]string{"rpcopy_server.db", Int64Str(GetNowUnixMilli())}, "_")))))
 	if FileExists(boltPath) {
 		err := os.Remove(boltPath)
 		PrintError("pbMiscBoltSave:os.Remove", err)

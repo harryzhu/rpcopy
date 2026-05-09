@@ -55,7 +55,7 @@ var sendCmd = &cobra.Command{
 		if err != nil {
 			PrintError("cannot connect to server", err)
 		}
-		PrintlnInfo("HealthCheck response from Server", ping, ". Delay: ", spDuration)
+		PrintlnInfo("HealthCheck response from Server", ping, ". [Latency]: ", spDuration)
 
 		SetFileList()
 
