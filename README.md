@@ -50,3 +50,44 @@
 # --with-tls 是否启用TLS加密传输，默认不启用；该参数需要合格的服务器端、客户端证书同时有效。证书放在 cert 目录下，域名用户自定义，但文件夹结构、名称不能修改。
 #
 ```
+
+3) 加密传输
+
+下载默认的服务端和客户端证书，`cert_files_rpcopy_com.zip`， 并将其解压在与 `rcopy` 同级目录的 `cert` 目录中，一共`5个证书`。
+
+或者用 仓库 中 `cert/_gen_cert/gen_cert.sh` 生成自己的域名证书, 需要先修改 `gen_cert.sh` 和 `openssl.conf` 中的域名，然后再运行 `./gen_cert.sh`
+
+服务端 只需要 cert/server 和 cert/ca.crt
+客户端 只需要 cert/client 和 cert/ca.crt
+
+然后带有 --with-tls 启动
+
+启动服务端
+
+```Bash
+./rpcopy server --target-dir=/Volumes/SSD256/logs/nn01 --host="files.rpcopy.com" --port=9527  --with-tls
+#
+```
+
+在客户端需要修改 `/etc/hosts` 将域名指向你的服务端IP
+
+```Bash
+192.168.0.123   files.rpcopy.com
+#
+```
+
+启动客户端
+
+```Bash
+./rpcopy send --source-dir=/data/hadoop/logs/nn01 --host="files.rpcopy.com" --port=9527  --with-tls
+#
+```
+
+启用加密传输时， 两端的证书必须匹配，否则无法连接成功。
+
+服务端的证书不应泄漏给任何人。
+
+不同的客户端可以使用同一套客户端证书（简单），也可以为每个客户端生成不同的证书（专用）。
+
+
+
