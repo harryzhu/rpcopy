@@ -14,6 +14,7 @@ var (
 	IsIgnoreDotFile     bool
 	IsIgnoreEmptyFolder bool
 	IsOverwrite         bool
+	WithTLS             bool
 	MaxSize             int64
 	MinSize             int64
 	MaxSizeMB           int64
@@ -91,4 +92,5 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&Host, "host", "0.0.0.0", "host ip")
 	rootCmd.PersistentFlags().StringVar(&Port, "port", "9527", "port")
 	rootCmd.PersistentFlags().StringVar(&LogDir, "log-dir", "./logs", "log dir")
+	rootCmd.PersistentFlags().BoolVar(&WithTLS, "with-tls", false, "if use TLS")
 }

@@ -445,6 +445,12 @@ func GetFileList(dirPath string, withFilter bool) (filelist map[string]int64) {
 			return nil
 		}
 
+		if IsFollowSymlink == false {
+			if isSymlink(fpath) {
+				return nil
+			}
+		}
+
 		if withFilter {
 			if isCopyNeeded(fpath, finfo) == false {
 				return nil

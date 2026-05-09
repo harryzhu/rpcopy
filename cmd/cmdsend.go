@@ -37,7 +37,14 @@ var sendCmd = &cobra.Command{
 		timeStart = GetNowUnix()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		err := SetClientStreamConn()
+		var err error
+		if WithTLS {
+			PrintlnInfo("try to enable TLS mode")
+			err = SetTLSClientStreamConn()
+		} else {
+			err = SetClientStreamConn()
+		}
+
 		if err != nil {
 			FatalError("send: client", err)
 		}

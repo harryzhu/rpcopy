@@ -41,7 +41,13 @@ var serverCmd = &cobra.Command{
 		wg.Add(5)
 		go func() {
 			defer wg.Done()
-			StartFileTransferServer()
+			if WithTLS {
+				PrintlnInfo("try to enable TLS mode")
+				StartTLSFileTransferServer()
+			} else {
+				StartFileTransferServer()
+			}
+
 		}()
 
 		go func() {
