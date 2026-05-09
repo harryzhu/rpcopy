@@ -66,21 +66,21 @@
 
 ```Bash
 ./rpcopy server --target-dir=/Volumes/SSD256/logs/nn01 --host="files.rpcopy.com" --port=9527  --with-tls
-#
+
 ```
 
 在客户端需要修改 `/etc/hosts` 将域名指向你的服务端IP
 
 ```Bash
 192.168.0.123   files.rpcopy.com
-#
+
 ```
 
 启动客户端
 
 ```Bash
 ./rpcopy send --source-dir=/data/hadoop/logs/nn01 --host="files.rpcopy.com" --port=9527  --with-tls
-#
+
 ```
 
 启用加密传输时， 两端的证书必须匹配，否则无法连接成功。
@@ -89,5 +89,8 @@
 
 不同的客户端可以使用同一套客户端证书（简单），也可以为每个客户端生成不同的证书（专用）。
 
+一般服务端证书 `cert/server` 和 `cert/ca.crt` 和域名始终不变，客户端的证书 `cert/client` 可以按需生成
+
+如果域名发生改变，所有证书需要重新生成
 
 
