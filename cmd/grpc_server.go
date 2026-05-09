@@ -70,6 +70,14 @@ func (s *FileTransferService) GetMisc(ctx context.Context, pbIn *pb.Misc) (*pb.M
 			targetDirFileList = make(map[string]int64, 0)
 		}
 		resp.Data = Map2Byte(targetDirFileList)
+	case "ping":
+		PrintlnInfo("HealthCheck request from client", string(pbIn.Data))
+		if string(pbIn.Data) == "ping" {
+			resp.Data = []byte("pong")
+		} else {
+			resp.Data = []byte("error")
+		}
+
 	default:
 		resp.Data = []byte("ok")
 	}

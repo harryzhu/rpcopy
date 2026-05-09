@@ -158,10 +158,21 @@ func pbFileChunkSend(fpath string, pbFile *pb.File, stream pb.FileTransfer_Strea
 	return nil
 }
 
-func pbFileHead2(pbFile *pb.File, clientHead pb.FileTransferClient) *pb.File {
-	resp, err := clientHead.Head(context.Background(), pbFile)
-	PrintError("pbFileHead", err)
-	return resp
+func serverPing() (string, error) {
+	respMisc, err := gClient.GetMisc(context.Background(), &pb.Misc{Mtype: "ping", Data: []byte("ping")})
+	if err != nil {
+		PrintError("Ping:", err)
+		return "", err
+	}
+	var rt string
+	if string(respMisc.Data) == "pong" {
+		rt = "pong"
+	}
+
+	if string(respMisc.Data) == "error" {
+		rt = "error"
+	}
+	return rt, nil
 }
 
 func SetClientStreamConn() (err error) {

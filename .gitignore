@@ -1,6 +1,7 @@
 .DS_Store
 dist/
 _bak
+logs
 build.sh
 local_build.sh
 *.exe

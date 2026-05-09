@@ -48,6 +48,15 @@ var sendCmd = &cobra.Command{
 		if err != nil {
 			FatalError("send: client", err)
 		}
+		// server ping
+		sp1 := GetNowTime()
+		ping, err := serverPing()
+		spDuration := time.Since(sp1)
+		if err != nil {
+			PrintError("cannot connect to server", err)
+		}
+		PrintlnInfo("HealthCheck response from Server", ping, ". Elapse: ", spDuration)
+
 		SetFileList()
 
 		atomic.StoreInt32(&progressFlag, 0)
