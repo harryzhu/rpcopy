@@ -48,12 +48,32 @@ func PrintError(prefix string, err error) {
 	}
 }
 
-func PrintlnInfo(prefix string, args ...any) {
+func PrintlnInfo(color string, prefix string, args ...any) {
 	var info []string
 	for _, arg := range args {
 		info = append(info, fmt.Sprintf("%v", arg))
 	}
-	log.Printf("INFO: %v: %v\n", prefix, strings.Join(info, ""))
+	switch strings.ToLower(color) {
+	case "green":
+		log.Printf("INFO: %v: %v\n", Green(prefix), strings.Join(info, ""))
+	case "black":
+		log.Printf("INFO: %v: %v\n", Black(prefix), strings.Join(info, ""))
+	case "red":
+		log.Printf("INFO: %v: %v\n", Red(prefix), strings.Join(info, ""))
+	case "yellow":
+		log.Printf("INFO: %v: %v\n", Yellow(prefix), strings.Join(info, ""))
+	case "blue":
+		log.Printf("INFO: %v: %v\n", Blue(prefix), strings.Join(info, ""))
+	case "purple":
+		log.Printf("INFO: %v: %v\n", Purple(prefix), strings.Join(info, ""))
+	case "cyan":
+		log.Printf("INFO: %v: %v\n", Cyan(prefix), strings.Join(info, ""))
+	case "white":
+		log.Printf("INFO: %v: %v\n", White(prefix), strings.Join(info, ""))
+	default:
+		log.Printf("INFO: %v: %v\n", prefix, strings.Join(info, ""))
+	}
+
 }
 
 // -----color----

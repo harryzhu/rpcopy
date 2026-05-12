@@ -28,10 +28,6 @@ func getChanFileToDisk(pbIn *pb.File) error {
 func taskChanFile() error {
 	for {
 		ele := <-chanFile
-		if ele.Status == -1 {
-			DebugInfo("_COPYSTATUS:chanFile", "ALL_DONE")
-			continue
-		}
 		DebugInfo("taskChanFile", ele.ChanNum, ": ", string(ele.Path))
 
 		getChanFileToDisk(ele)
@@ -44,10 +40,6 @@ func taskChanFile() error {
 func taskChanFile1() error {
 	for {
 		ele := <-chanFile1
-		if ele.Status == -1 {
-			DebugInfo("_COPYSTATUS:chanFile1", "ALL_DONE")
-			continue
-		}
 		DebugInfo("taskChanFile1", ele.ChanNum, ": ", string(ele.Path))
 
 		getChanFileToDisk(ele)
@@ -60,10 +52,6 @@ func taskChanFile1() error {
 func taskChanFile2() error {
 	for {
 		ele := <-chanFile2
-		if ele.Status == -1 {
-			DebugInfo("_COPYSTATUS:chanFile2", "ALL_DONE")
-			continue
-		}
 		DebugInfo("taskChanFile2", ele.ChanNum, ": ", string(ele.Path))
 
 		getChanFileToDisk(ele)
@@ -76,10 +64,6 @@ func taskChanFile2() error {
 func taskChanFile3() error {
 	for {
 		ele := <-chanFile3
-		if ele.Status == -1 {
-			DebugInfo("_COPYSTATUS:chanFile3", "ALL_DONE")
-			continue
-		}
 		DebugInfo("taskChanFile3", ele.ChanNum, ": ", string(ele.Path))
 
 		getChanFileToDisk(ele)

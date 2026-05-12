@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-	"math"
 	"os"
 	"strings"
 
@@ -14,18 +12,24 @@ var (
 	IsIgnoreDotFile     bool
 	IsIgnoreEmptyFolder bool
 	IsOverwrite         bool
-	WithTLS             bool
+	IsZstdSend          bool
+	IsFollowSymlink     bool
 	MaxSize             int64
 	MinSize             int64
 	MaxSizeMB           int64
 	MinSizeMB           int64
 	MinAge              string
 	MaxAge              string
-	SourceDir           string
-	TargetDir           string
-	LogDir              string
 	FileExt             string
 	//
+	SourceDir string
+	TargetDir string
+	LogDir    string
+
+	//
+	Host      string
+	Port      string
+	IsWithTLS bool
 )
 
 var (
@@ -41,39 +45,22 @@ var (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "rpcopy",
-	Short: "./rpcopy --source-dir=/path/to/folder-you-want-to-copy --target-dir=/path/to/target-folder ",
+	Short: "",
 	Long:  ``,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		//DebugInfo("rootCmd", "PersistentPreRun")
 		SourceDir = strings.TrimRight(ToUnixSlash(SourceDir), "/")
 		TargetDir = strings.TrimRight(ToUnixSlash(TargetDir), "/")
-
 		timeStart = GetNowUnix()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-
+		//DebugInfo("rootCmd", "Run")
 	},
 	PersistentPostRun: func(cmd *cobra.Command, args []string) {
+		//DebugInfo("rootCmd", "PersistentPostRun")
 		timeStop = GetNowUnix()
-		if timeStart > 0 && timeStop > 0 {
-			timeDuration = timeStop - timeStart
-
-			if timeDuration > 2 {
-				// ClientSendFiles: clientStream.CloseSend()
-				// Wait for 2 seconds before send
-				timeDuration = timeDuration - 2
-			}
-			if timeDuration > 0 {
-				totalSpeed = int64(math.Ceil(float64(totalWriteSize)/float64(timeDuration))) >> 20
-				fmt.Println(SEP)
-				fmt.Printf("::: Copied: %v, Size: %v MB, Speed: %v MB/s\n", totalNum, totalWriteSize>>20, totalSpeed)
-
-				fmt.Printf("\n***** Elapse: %v (sec) *****\n", timeDuration)
-			}
-
-		}
-
+		timeDuration = timeStop - timeStart
+		PrintlnInfo("Cyan", "rpcopy: elapse(sec)", Int64Str(timeDuration))
 	},
 }
 
@@ -92,5 +79,5 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&Host, "host", "0.0.0.0", "host ip")
 	rootCmd.PersistentFlags().StringVar(&Port, "port", "9527", "port")
 	rootCmd.PersistentFlags().StringVar(&LogDir, "log-dir", "./logs", "log dir")
-	rootCmd.PersistentFlags().BoolVar(&WithTLS, "with-tls", false, "if use TLS")
+	rootCmd.PersistentFlags().BoolVar(&IsWithTLS, "with-tls", false, "if use TLS")
 }

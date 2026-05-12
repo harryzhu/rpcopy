@@ -73,7 +73,7 @@ func createBolt(filelist []string, dbName string) (err error) {
 		}
 		return nil
 	})
-	PrintlnInfo("createBolt: Elapse:", time.Since(t1))
+	PrintlnInfo("green", "createBolt: Elapse:", time.Since(t1))
 
 	db.Close()
 
