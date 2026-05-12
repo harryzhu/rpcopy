@@ -21,7 +21,6 @@ func pbHeadSourceFiles() error {
 	var headCount int = 0
 	var createCount int = 0
 	var updateCount int = 0
-	var chunkSize64 int64 = int64(chunkSize)
 	var fileHash map[string]string = make(map[string]string, 256)
 	fextMatch = regexp.MustCompile("(?i)" + FileExt)
 	SourceDir = ToUnixSlash(SourceDir)
@@ -97,9 +96,9 @@ func pbHeadSourceFiles() error {
 		fsize := finfo.Size()
 		sendFileList[spath] = fsize
 		if shash == "404" {
-			if fsize < boltSplitSize {
+			if fsize < smallFileSize {
 				smallFileList = append(smallFileList, spath)
-			} else if fsize >= boltSplitSize && fsize < chunkSize64 {
+			} else if fsize >= smallFileSize && fsize < mediumFileSize64 {
 				mediumFileList = append(mediumFileList, spath)
 			} else {
 				largeFileList = append(largeFileList, spath)
@@ -110,9 +109,9 @@ func pbHeadSourceFiles() error {
 
 		if shash != hashFile(fpath) {
 			fsize := finfo.Size()
-			if fsize < boltSplitSize {
+			if fsize < smallFileSize {
 				smallFileList = append(smallFileList, spath)
-			} else if fsize >= boltSplitSize && fsize < chunkSize64 {
+			} else if fsize >= smallFileSize && fsize < mediumFileSize64 {
 				mediumFileList = append(mediumFileList, spath)
 			} else {
 				largeFileList = append(largeFileList, spath)

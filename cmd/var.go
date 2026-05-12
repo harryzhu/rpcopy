@@ -13,8 +13,10 @@ const (
 	maxBoltSize int64 = 1 << 30
 	// < 8 MB :use boltdb
 	// >= 8 MB use rawfile
-	boltSplitSize int64 = 8 << 20
-	chunkSize     int   = 64 << 20
+	smallFileSize    int64 = 8 << 20
+	mediumFileSize64 int64 = 256 << 20
+	//
+	chunkSize int = 32 << 20
 	//
 	MaxMessageSize int    = 4 << 30
 	SEP            string = "------------------------------------------------------------"
