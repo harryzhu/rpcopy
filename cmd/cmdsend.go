@@ -35,6 +35,7 @@ var sendCmd = &cobra.Command{
 
 		serverHealthCheck()
 
+		timeStart = GetNowUnix()
 		pbHeadSourceFiles()
 		wg := sync.WaitGroup{}
 		wg.Add(4)
@@ -79,10 +80,12 @@ var sendCmd = &cobra.Command{
 
 	},
 	PostRun: func(cmd *cobra.Command, args []string) {
+		timeStop = GetNowUnix()
 		tnum := atomic.LoadInt32(&totalNum)
-		if tnum > 0 {
+		tduration := timeStop - timeStart
+		if tduration > 0 {
 			tws := atomic.LoadInt64(&totalWriteSize)
-			tspeed := tws / int64(tnum)
+			tspeed := int64((float64(tws) / float64(tduration)))
 			fmt.Println(SEP)
 			fmt.Printf("\nCount: %d, Size: %d MB, Speed: %d MB/s\n", tnum, tws>>20, tspeed>>20)
 			fmt.Println(SEP)

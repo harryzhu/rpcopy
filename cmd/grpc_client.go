@@ -124,12 +124,13 @@ func pbHeadSourceFiles() error {
 
 	DebugInfo("pbHeadSourceFiles: Duration", time.Since(t1), ", headCount: ", headCount)
 	DebugInfo("pbHeadSourceFiles: createCount", createCount, ", updateCount: ", updateCount)
-	DebugInfo("--------------------------------", "-----------------")
+	PrintlnInfo("green", "--------------------------------------", "")
 	DebugInfo("pbHeadSourceFiles: TotalCount", len(sendFileList))
-	DebugInfo("pbHeadSourceFiles: smallFileList", len(smallFileList))
-	DebugInfo("pbHeadSourceFiles: mediumFileList", len(mediumFileList))
-	DebugInfo("pbHeadSourceFiles: largeFileList", len(largeFileList))
-	DebugInfo("--------------------------------", "-----------------")
+	PrintlnInfo("green", "pbHeadSourceFiles: smallFileList", len(smallFileList))
+	PrintlnInfo("green", "pbHeadSourceFiles: mediumFileList", len(mediumFileList))
+	PrintlnInfo("green", "pbHeadSourceFiles: largeFileList", len(largeFileList))
+	PrintlnInfo("green", "pbHeadSourceFiles: symlinkList", len(symList))
+	PrintlnInfo("green", "--------------------------------------", "")
 
 	sort.Strings(smallFileList)
 	sort.Strings(mediumFileList)

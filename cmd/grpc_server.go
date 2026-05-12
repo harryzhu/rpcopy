@@ -37,7 +37,7 @@ func (s *FileTransferService) Head(ctx context.Context, pbIn *pb.File) (*pb.File
 			return &resp, err
 		}
 		var diffHashList map[string]string = make(map[string]string, 256)
-		for spath, shash := range filehashlist {
+		for spath, _ := range filehashlist {
 			targetPath := filepath.Join(TargetDir, spath)
 			if FileExists(targetPath) == false {
 				diffHashList[spath] = "404"
@@ -46,10 +46,7 @@ func (s *FileTransferService) Head(ctx context.Context, pbIn *pb.File) (*pb.File
 			if IsOverwrite == false {
 				continue
 			}
-			if shash != hashFile(targetPath) {
-				diffHashList[spath] = hashFile(targetPath)
-				continue
-			}
+			diffHashList[spath] = hashFile(targetPath)
 		}
 
 		resp.Ftype = []byte("FileHashList")

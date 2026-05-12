@@ -236,7 +236,7 @@ func serverHealthCheck() error {
 	if string(respMisc.Data) == "error" {
 		rt = "error"
 	}
-	PrintlnInfo("Cyan", "HealthCheck response from Server", rt, ". [Latency]: ", time.Since(sp1))
+	PrintlnInfo("Cyan", "HealthCheck From Server", rt, ". [Latency]: ", time.Since(sp1))
 	return nil
 }
 
