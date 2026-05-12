@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"fmt"
 	"sync"
+	"sync/atomic"
 
 	"github.com/spf13/cobra"
 )
@@ -35,12 +37,13 @@ var sendCmd = &cobra.Command{
 
 		pbHeadSourceFiles()
 		wg := sync.WaitGroup{}
-		wg.Add(3)
+		wg.Add(4)
 
 		go func() {
 			defer wg.Done()
 			ClientSendSmallFileList()
 			DebugInfo("ClientSendSmallFileList", "ALL_DONE")
+			atomic.AddInt32(&progressFlag, 1)
 		}()
 
 		go func() {
@@ -48,24 +51,42 @@ var sendCmd = &cobra.Command{
 			ClientSendMediumFileList()
 			DebugInfo("largeFileList", largeFileList)
 			DebugInfo("ClientSendMediumFileList", "ALL_DONE")
+			atomic.AddInt32(&progressFlag, 1)
 		}()
 
 		go func() {
 			defer wg.Done()
 			ClientSendLargeFileList()
 			DebugInfo("ClientSendLargeFileList", "ALL_DONE")
+			atomic.AddInt32(&progressFlag, 1)
 		}()
+
+		go func() {
+			defer wg.Done()
+			PrintProgress()
+		}()
+
 		wg.Wait()
 
 		ClientSendDirSymlink()
 		ClientGetReport()
 
 		//time.Sleep(1 * time.Second)
-		DebugInfo("ClientSendFiles: CloseSend", "...")
 		err = gClientStream.CloseSend()
 		PrintError("ClientSendFiles: CloseSend", err)
 		// close connection
-		//gClientConn.Close()
+		gClientConn.Close()
+
+	},
+	PostRun: func(cmd *cobra.Command, args []string) {
+		tnum := atomic.LoadInt32(&totalNum)
+		if tnum > 0 {
+			tws := atomic.LoadInt64(&totalWriteSize)
+			tspeed := tws / int64(tnum)
+			fmt.Println(SEP)
+			fmt.Printf("\nCount: %d, Size: %d MB, Speed: %d MB/s\n", tnum, tws>>20, tspeed>>20)
+			fmt.Println(SEP)
+		}
 	},
 }
 

@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/klauspost/compress/zstd"
@@ -204,6 +205,25 @@ func isPathValid(p string) bool {
 	return true
 }
 
+func PrintProgress() error {
+	flag := int32(0)
+	for {
+		flag = atomic.LoadInt32(&progressFlag)
+		if flag == 3 {
+			break
+		}
+		time.Sleep(2 * time.Second)
+		curTotalNum := atomic.LoadInt32(&totalNum)
+		curTotalWriteSize := atomic.LoadInt64(&totalWriteSize)
+		if IsDebug == false {
+			PrintSpinner2(strings.Join([]string{Int32Str(curTotalNum), " => "}, ""),
+				strings.Join([]string{Int64Str(curTotalWriteSize >> 20), " MB"}, ""))
+		}
+	}
+
+	return nil
+}
+
 func isSymlink(src string) bool {
 	linfo, err := os.Lstat(src)
 	if err != nil {
@@ -253,14 +273,12 @@ func dumpFileList(flist []string, fname string) error {
 func isCopyNeeded(fpath string, dirInfo fs.DirEntry) bool {
 	if FileExt != "" {
 		if fextMatch.MatchString(filepath.Ext(fpath)) == false {
-			numStatistics["skip_file_ext"]++
 			return false
 		}
 	}
 
 	if IsIgnoreDotFile == true {
 		if strings.HasPrefix(filepath.Base(fpath), ".") {
-			numStatistics["skip_dot_file"]++
 			return false
 		}
 	}
@@ -278,28 +296,24 @@ func isCopyNeeded(fpath string, dirInfo fs.DirEntry) bool {
 
 	if MinSize != -1 {
 		if finfo.Size() < MinSize {
-			numStatistics["skip_size_min"]++
 			return false
 		}
 	}
 
 	if MaxSize != -1 {
 		if finfo.Size() > MaxSize {
-			numStatistics["skip_size_max"]++
 			return false
 		}
 	}
 
 	if MinAge != "" {
 		if finfo.ModTime().Unix() < TimeStr2Unix(MinAge) {
-			numStatistics["skip_age_min"]++
 			return false
 		}
 	}
 
 	if MaxAge != "" {
 		if finfo.ModTime().Unix() > TimeStr2Unix(MaxAge) {
-			numStatistics["skip_age_max"]++
 			return false
 		}
 	}

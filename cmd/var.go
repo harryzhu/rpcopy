@@ -33,8 +33,7 @@ var (
 	//
 	safePbSaveStatus sync.Map
 	pbSaveStatus     map[string]string = make(map[string]string, 2048)
-	//
-	numStatistics map[string]int = make(map[string]int, 8)
+	progressFlag     int32             = 0
 	//
 	fextMatch *regexp.Regexp
 )
