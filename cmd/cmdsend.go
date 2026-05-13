@@ -115,5 +115,6 @@ func init() {
 
 	rootCmd.MarkFlagRequired("host")
 	rootCmd.MarkFlagRequired("port")
+	rootCmd.MarkFlagRequired("log-dir")
 	sendCmd.MarkFlagRequired("source-dir")
 }

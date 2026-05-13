@@ -14,6 +14,7 @@ var serverCmd = &cobra.Command{
 	PreRun: func(cmd *cobra.Command, args []string) {
 		//DebugInfo("serverCmd", "PreRun")
 		MakeDirs(TargetDir)
+		MakeDirs(LogDir)
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		//DebugInfo("serverCmd", "Run")
@@ -54,6 +55,7 @@ func init() {
 	rootCmd.AddCommand(serverCmd)
 	rootCmd.MarkFlagRequired("host")
 	rootCmd.MarkFlagRequired("port")
+	rootCmd.MarkFlagRequired("log-dir")
 
 	serverCmd.Flags().StringVar(&TargetDir, "target-dir", "", "root dir for saving")
 	serverCmd.Flags().BoolVar(&IsOverwrite, "overwrite", true, "allow to overwrite the existing files")

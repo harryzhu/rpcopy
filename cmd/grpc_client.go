@@ -124,8 +124,8 @@ func pbHeadSourceFiles() error {
 
 	DebugInfo("pbHeadSourceFiles: Duration", time.Since(t1), ", headCount: ", headCount)
 	DebugInfo("pbHeadSourceFiles: createCount", createCount, ", updateCount: ", updateCount)
-	PrintlnInfo("green", "--------------------------------------", "")
 	DebugInfo("pbHeadSourceFiles: TotalCount", len(sendFileList))
+	PrintlnInfo("green", "--------------------------------------", "")
 	PrintlnInfo("green", "pbHeadSourceFiles: smallFileList", len(smallFileList))
 	PrintlnInfo("green", "pbHeadSourceFiles: mediumFileList", len(mediumFileList))
 	PrintlnInfo("green", "pbHeadSourceFiles: largeFileList", len(largeFileList))
@@ -224,6 +224,8 @@ func ClientSendMediumFileList() error {
 }
 
 func ClientSendLargeFileList() error {
+	wg := sync.WaitGroup{}
+	var count int = 0
 	for _, spath := range largeFileList {
 		fpath := ToUnixSlash(filepath.Join(SourceDir, spath))
 		finfo, err := os.Stat(fpath)
@@ -236,10 +238,23 @@ func ClientSendLargeFileList() error {
 		atomic.AddInt32(&totalNum, 1)
 		atomic.AddInt64(&totalWriteSize, finfo.Size())
 		DebugInfo("ClientSendLargeFileList: Sending", fpath)
-		err = pbFileChunkSend(fpath, pbFile)
-		PrintError("ClientSendLargeFileList: pbFileChunkSend", err)
+
+		wg.Add(1)
+		go func(fpath string, pbFile *pb.File) {
+			defer wg.Done()
+			PrintlnInfo("white", "Sending", fpath)
+			err = pbFileChunkSend(fpath, pbFile)
+			PrintError("ClientSendLargeFileList: pbFileChunkSend", err)
+		}(fpath, pbFile)
+
+		count++
+
+		if count%2 == 0 {
+			wg.Wait()
+		}
 
 	}
+	wg.Wait()
 
 	return nil
 }

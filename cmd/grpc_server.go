@@ -196,7 +196,7 @@ func StartFileTransferServer() {
 	if err != nil {
 		FatalError("StartFileTransferServer ", err)
 	} else {
-		PrintlnInfo("Endpoint RPC ", hostPort)
+		PrintlnInfo("purple", "Endpoint RPC ", hostPort)
 	}
 
 	grpcServerFileTransfer := grpc.NewServer(
