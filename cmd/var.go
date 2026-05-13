@@ -14,7 +14,7 @@ const (
 	// < 8 MB :use boltdb
 	// >= 8 MB use rawfile
 	smallFileSize    int64 = 2 << 20
-	mediumFileSize64 int64 = 256 << 20
+	mediumFileSize64 int64 = 2048 << 20
 	//
 	chunkSize int = 32 << 20
 	//
