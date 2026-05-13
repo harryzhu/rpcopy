@@ -14,12 +14,12 @@ const (
 	// < 8 MB :use boltdb
 	// >= 8 MB use rawfile
 	smallFileSize    int64 = 2 << 20
-	mediumFileSize64 int64 = 2048 << 20
+	mediumFileSize64 int64 = 16 << 20
 	//
-	chunkSize int = 32 << 20
+	chunkSize int = 8 << 20
 	//
 	MaxMessageSize int    = 4 << 30
-	SEP            string = "----------------------------------------------------------------"
+	sepLine        string = "----------------------------------------------------------------"
 )
 
 var (

@@ -86,9 +86,9 @@ var sendCmd = &cobra.Command{
 		if tduration > 0 {
 			tws := atomic.LoadInt64(&totalWriteSize)
 			tspeed := int64((float64(tws) / float64(tduration)))
-			fmt.Println(SEP)
+			fmt.Println(sepLine)
 			fmt.Printf("\nCount: %d, Size: %d MB, Speed: %d MB/s\n", tnum, tws>>20, tspeed>>20)
-			fmt.Println(SEP)
+			fmt.Println(sepLine)
 		}
 	},
 }

@@ -2,19 +2,12 @@ package cmd
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"io"
 	"io/fs"
-	"net"
-	"os"
 	"path/filepath"
 	pb "pb"
 	"strings"
 	"time"
-
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 )
 
 type FileInfoLite struct {
@@ -51,6 +44,7 @@ func (s *FileTransferService) Head(ctx context.Context, pbIn *pb.File) (*pb.File
 
 		resp.Ftype = []byte("FileHashList")
 		resp.Data = MapStr2Byte(diffHashList)
+		PrintlnInfo("green", "FileHashList: Size", len(resp.Data))
 		return &resp, nil
 	}
 
@@ -116,7 +110,8 @@ func (s *FileTransferService) PutMisc(ctx context.Context, pbIn *pb.Misc) (*pb.M
 	resp.Data = nil
 	switch pbIn.Mtype {
 	case "pbBolt":
-		pbMiscBoltSave(pbIn)
+		//pbMiscBoltSave(pbIn)
+		resp.Data = nil
 	default:
 		DebugInfo("PutMisc", "cannot match Mtype")
 		resp.Data = nil
@@ -152,19 +147,21 @@ func (s *FileTransferService) StreamReceive(stream pb.FileTransfer_StreamReceive
 		reqType := string(pbIn.Ftype)
 
 		if reqType == "file" {
-			DebugInfo("StreamReceive: file", pbIn.ChunkNum, "/", pbIn.Chunks)
-			switch pbIn.ChanNum {
-			case 0:
-				chanFile <- pbIn
-			case 1:
-				chanFile1 <- pbIn
-			case 2:
-				chanFile2 <- pbIn
-			case 3:
-				chanFile3 <- pbIn
-			default:
-				chanFile <- pbIn
-			}
+			// DebugInfo("StreamReceive: file", pbIn.ChunkNum, "/", pbIn.Chunks)
+			// switch pbIn.ChanNum {
+			// case 0:
+			// 	chanFile <- pbIn
+			// case 1:
+			// 	chanFile1 <- pbIn
+			// case 2:
+			// 	chanFile2 <- pbIn
+			// case 3:
+			// 	chanFile3 <- pbIn
+			// default:
+			// 	chanFile <- pbIn
+			// }
+
+			getChanFileToDisk(pbIn)
 
 			continue
 		}
@@ -174,7 +171,14 @@ func (s *FileTransferService) StreamReceive(stream pb.FileTransfer_StreamReceive
 			continue
 		}
 
-		if reqType == "SIG" {
+		if reqType == "bolt" {
+			var boltPath string = ""
+			boltPath, err = pbBoltSave(pbIn)
+			PrintError("StreamReceive: pbBoltSave", err)
+			if boltPath != "" {
+				PrintlnInfo("green", "pbBoltExtract", boltPath)
+				pbBoltExtract(boltPath)
+			}
 
 			continue
 		}
@@ -188,66 +192,4 @@ func (s *FileTransferService) StreamReceive(stream pb.FileTransfer_StreamReceive
 
 	}
 	return nil
-}
-
-func StartFileTransferServer() {
-	hostPort := strings.Join([]string{Host, Port}, ":")
-	listening, err := net.Listen("tcp", hostPort)
-	if err != nil {
-		FatalError("StartFileTransferServer ", err)
-	} else {
-		PrintlnInfo("purple", "Endpoint RPC ", hostPort)
-	}
-
-	grpcServerFileTransfer := grpc.NewServer(
-		grpc.MaxMsgSize(MaxMessageSize),
-		grpc.MaxRecvMsgSize(MaxMessageSize),
-		grpc.MaxSendMsgSize(MaxMessageSize))
-
-	pb.RegisterFileTransferServer(grpcServerFileTransfer, &FileTransferService{})
-
-	grpcServerFileTransfer.Serve(listening)
-}
-
-func StartTLSFileTransferServer() {
-	certificate, err := tls.LoadX509KeyPair("cert/server/server.crt", "cert/server/server.key")
-	if err != nil {
-		FatalError("StartTLSFileTransferServer:tls.LoadX509KeyPair", err)
-	}
-
-	certPool := x509.NewCertPool()
-	ca, err := os.ReadFile("cert/ca.crt")
-	if err != nil {
-		FatalError("StartTLSFileTransferServer:os.ReadFile", err)
-	}
-
-	if ok := certPool.AppendCertsFromPEM(ca); !ok {
-		FatalError("StartTLSFileTransferServer:os.ReadFile", NewError("certPool.AppendCertsFromPEM"))
-	}
-
-	opts := []grpc.ServerOption{
-		grpc.Creds(credentials.NewTLS(&tls.Config{
-			ClientAuth:   tls.RequireAndVerifyClientCert,
-			Certificates: []tls.Certificate{certificate},
-			ClientCAs:    certPool,
-		},
-		)),
-		grpc.MaxMsgSize(MaxMessageSize),
-		grpc.MaxRecvMsgSize(MaxMessageSize),
-		grpc.MaxSendMsgSize(MaxMessageSize),
-	}
-
-	hostPort := strings.Join([]string{Host, Port}, ":")
-	listening, err := net.Listen("tcp", hostPort)
-	if err != nil {
-		FatalError("StartFileTransferServer: ", err)
-	} else {
-		PrintlnInfo("Endpoint RPC: ", hostPort)
-	}
-
-	grpcServerFileTransfer := grpc.NewServer(opts...)
-
-	pb.RegisterFileTransferServer(grpcServerFileTransfer, &FileTransferService{})
-
-	grpcServerFileTransfer.Serve(listening)
 }

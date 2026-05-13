@@ -1,10 +1,8 @@
 package cmd
 
 import (
-	"context"
 	"os"
 	"path/filepath"
-	pb "pb"
 	"strings"
 	"time"
 
@@ -36,28 +34,29 @@ func createBolt(filelist []string, dbName string) (err error) {
 		return nil
 	})
 
-	filelist2 := filelist
-
 	t1 := time.Now()
+	var fkey, fpath, keyInfo, keyData string
+	var finfo os.FileInfo
+	var bfinfo, bdata []byte
 	db.Batch(func(tx *bolt.Tx) error {
 		bkt := tx.Bucket([]byte("pbfiles"))
-		for _, relPath := range filelist2 {
-			fkey := strings.TrimPrefix(relPath, SourceDir)
-			fpath := filepath.Join(SourceDir, relPath)
+		for _, relPath := range filelist {
+			fkey = strings.TrimPrefix(relPath, SourceDir)
+			fpath = filepath.Join(SourceDir, relPath)
 			//DebugInfo("createBolt: PUT", fpath)
-			finfo, err := os.Stat(fpath)
+			finfo, err = os.Stat(fpath)
 			if err != nil {
 				PrintError("createBolt:os.Stat", err)
 				continue
 			}
-			bfinfo := finfo2FileInfoLite(finfo)
-			bdata, err := os.ReadFile(fpath)
+			bfinfo = finfo2FileInfoLite(finfo)
+			bdata, err = os.ReadFile(fpath)
 			if err != nil {
 				PrintError("createBolt:os.ReadFile", err)
 				continue
 			}
-			keyInfo := strings.Join([]string{"INFO", fkey}, "/")
-			keyData := strings.Join([]string{"DATA", fkey}, "/")
+			keyInfo = strings.Join([]string{"INFO", fkey}, "/")
+			keyData = strings.Join([]string{"DATA", fkey}, "/")
 
 			err = bkt.Put([]byte(keyInfo), ZstdBytes(bfinfo))
 			if err != nil {
@@ -77,7 +76,7 @@ func createBolt(filelist []string, dbName string) (err error) {
 
 	db.Close()
 
-	finfo, err := os.Stat(dbPath)
+	finfo, err = os.Stat(dbPath)
 	if err != nil {
 		PrintError("createBolt:os.Stat", err)
 		return err
@@ -85,21 +84,15 @@ func createBolt(filelist []string, dbName string) (err error) {
 
 	DebugInfo("createBolt:os.Stat", finfo.Size())
 
-	pbMisc := &pb.Misc{Mtype: "pbBolt", Data: nil}
-	pbFileData, err := os.ReadFile(dbPath)
-	if err != nil {
-		PrintError("createBolt:os.ReadFile", err)
-		return err
-	}
-	pbMisc.Data = pbFileData
-	DebugInfo("createBolt:fsize", len(pbMisc.Data))
+	pbFile := file2pbFile(dbPath, finfo, "bolt")
 
-	_, err = gClient.PutMisc(context.Background(), pbMisc)
+	err = pbBoltSend(dbPath, pbFile)
 	if err != nil {
 		PrintError("createBolt:pbFileChunkSend", err)
 		return err
 	}
-	time.Sleep(time.Second)
+
+	//time.Sleep(time.Second)
 	if FileExists(dbPath) {
 		err := os.Remove(dbPath)
 		PrintError("createBolt:os.Remove", err)

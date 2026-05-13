@@ -70,6 +70,7 @@ func pbHeadSourceFiles() error {
 	pbFile.Fsum = nil
 	resp, err := gClient.Head(context.Background(), &pbFile)
 
+	PrintlnInfo("green", "pbFile.Data Size: ", len(pbFile.Data))
 	if err != nil {
 		PrintError("pbHeadSourceFiles: gClient.Head", err)
 		return err
@@ -171,7 +172,7 @@ func ClientSendSmallFileList() error {
 			countBoltFileList = len(boltFileList)
 			atomic.AddInt32(&totalNum, int32(countBoltFileList))
 			atomic.AddInt64(&totalWriteSize, bsize)
-			err := createBolt(boltFileList, strings.Join([]string{"rpcopy_client.db", Int2Str(countBoltFileList), Int64Str(GetNowUnixMilli())}, "_"))
+			err := createBolt(boltFileList, strings.Join([]string{"rpcopy_client.db", "bolt"}, "_"))
 			PrintError("ClientSendFiles:createBolt", err)
 			boltFileList = boltFileList[:0]
 			bsize = 0
@@ -180,7 +181,7 @@ func ClientSendSmallFileList() error {
 
 	if len(boltFileList) > 0 {
 		countBoltFileList = len(boltFileList)
-		err := createBolt(boltFileList, strings.Join([]string{"rpcopy_client.db", Int2Str(countBoltFileList), Int64Str(GetNowUnixMilli())}, "_"))
+		err := createBolt(boltFileList, strings.Join([]string{"rpcopy_client.db", "bolt"}, "_"))
 		atomic.AddInt32(&totalNum, int32(countBoltFileList))
 		atomic.AddInt64(&totalWriteSize, bsize)
 		PrintError("ClientSendFiles:createBolt", err)
@@ -193,6 +194,7 @@ func ClientSendSmallFileList() error {
 func ClientSendMediumFileList() error {
 	wg := sync.WaitGroup{}
 	var count int = 0
+	var pbFile *pb.File
 	for _, spath := range mediumFileList {
 		fpath := ToUnixSlash(filepath.Join(SourceDir, spath))
 		finfo, err := os.Stat(fpath)
@@ -200,7 +202,7 @@ func ClientSendMediumFileList() error {
 			PrintError("ClientSendMediumFileList", err)
 			continue
 		}
-		pbFile := file2pbFile(fpath, finfo, "file")
+		pbFile = file2pbFile(fpath, finfo, "file")
 		count++
 
 		wg.Add(1)
@@ -242,7 +244,7 @@ func ClientSendLargeFileList() error {
 		wg.Add(1)
 		go func(fpath string, pbFile *pb.File) {
 			defer wg.Done()
-			PrintlnInfo("white", "Sending", fpath)
+			//PrintlnInfo("white", "Sending", fpath)
 			err = pbFileChunkSend(fpath, pbFile)
 			PrintError("ClientSendLargeFileList: pbFileChunkSend", err)
 		}(fpath, pbFile)
