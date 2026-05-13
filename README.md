@@ -21,6 +21,12 @@
 |-------------------------------|---------------|----------|
 | 14959 个文件，共 34.2 GB        |     134 秒    |  183 秒  |
 
+
+`rpcopy` 在 `mac` 或 `Linux` 上表现要优于在 `windows`上。
+
+上述测试，从 `windows` rpcopy 到 `mac`，需要`134秒`，从 `mac` rpcoopy 到 `windows` 只需要 `96秒`
+
+
 ![RPCOPY](nic-rpcopy.jpg "rpcopy")
 ![SCP](nic-scp.jpg "scp")
 
