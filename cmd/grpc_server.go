@@ -183,6 +183,11 @@ func (s *FileTransferService) StreamReceive(stream pb.FileTransfer_StreamReceive
 			continue
 		}
 
+		if reqType == "SIG" {
+			PrintlnInfo("green", "received signal", string(pbIn.Comment))
+			continue
+		}
+
 		DebugInfo("StreamReceive: resp.Status", resp.Status)
 
 		err = stream.Send(&resp)

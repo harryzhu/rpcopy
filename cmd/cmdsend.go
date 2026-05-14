@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -40,31 +41,42 @@ var sendCmd = &cobra.Command{
 		wg := sync.WaitGroup{}
 		wg.Add(4)
 
-		go func() {
+		go func() error {
 			defer wg.Done()
+			t1 := GetNowTime()
+			PrintlnInfo("green", "SendSmallFileList", "Start ...")
 			ClientSendSmallFileList()
-			DebugInfo("ClientSendSmallFileList", "ALL_DONE")
+			PrintlnInfo("green", "SendSmallFileList", " Done ... Elapse: ", time.Since(t1))
 			atomic.AddInt32(&progressFlag, 1)
+			return nil
 		}()
 
-		go func() {
+		go func() error {
 			defer wg.Done()
+			t1 := GetNowTime()
+			PrintlnInfo("cyan", "SendMediumFileList", "Start ...")
 			ClientSendMediumFileList()
-			DebugInfo("largeFileList", largeFileList)
-			DebugInfo("ClientSendMediumFileList", "ALL_DONE")
+			DebugInfo("mediumFileList", mediumFileList)
+			PrintlnInfo("cyan", "SendMediumFileList", " Done ... Elapse: ", time.Since(t1))
 			atomic.AddInt32(&progressFlag, 1)
+			return nil
 		}()
 
-		go func() {
+		go func() error {
 			defer wg.Done()
+			t1 := GetNowTime()
+			PrintlnInfo("blue", "SendLargeFileList", "Start ...")
 			ClientSendLargeFileList()
-			DebugInfo("ClientSendLargeFileList", "ALL_DONE")
+			PrintlnInfo("blue", "SendLargeFileList", " Done ... Elapse: ", time.Since(t1))
 			atomic.AddInt32(&progressFlag, 1)
+			return nil
 		}()
 
-		go func() {
+		go func() error {
 			defer wg.Done()
 			PrintProgress()
+			PrintlnInfo("purple", "100%", "bye ...")
+			return nil
 		}()
 
 		wg.Wait()

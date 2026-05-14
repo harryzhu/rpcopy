@@ -6,6 +6,9 @@ cp -r cert/client/client.* dist/cert/client/
 
 zip -r dist/cert_files_rpcopy_com.zip dist/cert -x ".DS_Store"
 
+CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o dist/windows_amd64/rpcopy.exe -ldflags "-w -s" main.go
+zip dist/windows_amd64/rpcopy_windows_amd64.zip dist/windows_amd64/rpcopy.exe
+
 CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o dist/macos_arm/rpcopy -ldflags "-w -s" main.go
 zip dist/macos_arm/rpcopy_macos_arm.zip dist/macos_arm/rpcopy
 
@@ -17,5 +20,3 @@ CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o dist/linux_amd64/rpcopy -ldfla
 zip dist/linux_amd64/rpcopy_linux_amd64.zip dist/linux_amd64/rpcopy
 
 
-CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o dist/windows_amd64/rpcopy.exe -ldflags "-w -s" main.go
-zip dist/windows_amd64/rpcopy_windows_amd64.zip dist/windows_amd64/rpcopy.exe

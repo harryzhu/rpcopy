@@ -72,7 +72,6 @@ func createBolt(filelist []string, dbName string) (err error) {
 		}
 		return nil
 	})
-	PrintlnInfo("green", "createBolt: Elapse:", time.Since(t1))
 
 	db.Close()
 
@@ -82,15 +81,17 @@ func createBolt(filelist []string, dbName string) (err error) {
 		return err
 	}
 
-	DebugInfo("createBolt:os.Stat", finfo.Size())
+	PrintlnInfo("green", "createBolt: Elapse", time.Since(t1), ", Size: ", finfo.Size()>>20, "MB")
 
 	pbFile := file2pbFile(dbPath, finfo, "bolt")
 
+	t1 = GetNowTime()
 	err = pbBoltSend(dbPath, pbFile)
 	if err != nil {
 		PrintError("createBolt:pbFileChunkSend", err)
 		return err
 	}
+	PrintlnInfo("green", "sendBolt: Elapse", time.Since(t1))
 
 	//time.Sleep(time.Second)
 	if FileExists(dbPath) {

@@ -168,12 +168,12 @@ func ClientSendSmallFileList() error {
 		}
 
 		if bsize >= maxBoltSize {
-			DebugInfo("ClientSendFiles: bsize", bsize>>20, " MB, MaxBoltSize= ", maxBoltSize>>20, " MB")
+			DebugInfo("ClientSendSmallFileList: bsize", bsize>>20, " MB, MaxBoltSize= ", maxBoltSize>>20, " MB")
 			countBoltFileList = len(boltFileList)
 			atomic.AddInt32(&totalNum, int32(countBoltFileList))
 			atomic.AddInt64(&totalWriteSize, bsize)
 			err := createBolt(boltFileList, strings.Join([]string{"rpcopy_client.db", "bolt"}, "_"))
-			PrintError("ClientSendFiles:createBolt", err)
+			PrintError("ClientSendSmallFileList:createBolt", err)
 			boltFileList = boltFileList[:0]
 			bsize = 0
 		}
@@ -184,7 +184,7 @@ func ClientSendSmallFileList() error {
 		err := createBolt(boltFileList, strings.Join([]string{"rpcopy_client.db", "bolt"}, "_"))
 		atomic.AddInt32(&totalNum, int32(countBoltFileList))
 		atomic.AddInt64(&totalWriteSize, bsize)
-		PrintError("ClientSendFiles:createBolt", err)
+		PrintError("ClientSendSmallFileList:createBolt", err)
 	}
 	//
 
@@ -193,8 +193,7 @@ func ClientSendSmallFileList() error {
 
 func ClientSendMediumFileList() error {
 	wg := sync.WaitGroup{}
-	var count int = 0
-	var pbFile *pb.File
+	var count int32 = 0
 	for _, spath := range mediumFileList {
 		fpath := ToUnixSlash(filepath.Join(SourceDir, spath))
 		finfo, err := os.Stat(fpath)
@@ -202,32 +201,36 @@ func ClientSendMediumFileList() error {
 			PrintError("ClientSendMediumFileList", err)
 			continue
 		}
-		pbFile = file2pbFile(fpath, finfo, "file")
-		count++
 
 		wg.Add(1)
-		go func(fpath string, pbFile *pb.File) error {
+		go func(fpath string, finfo fs.FileInfo) error {
 			defer wg.Done()
 
 			atomic.AddInt32(&totalNum, 1)
 			atomic.AddInt64(&totalWriteSize, finfo.Size())
+
+			atomic.AddInt32(&count, 1)
+			pbFile := file2pbFile(fpath, finfo, "file")
+
 			//DebugInfo("ClientSendMediumFileList: Sending", fpath)
 			err = pbFileSend(fpath, pbFile)
+			atomic.AddInt32(&count, -1)
 			PrintError("ClientSendMediumFileList: pbFileChunkSend", err)
 			return nil
-		}(fpath, pbFile)
+		}(fpath, finfo)
 
-		if count%4 == 0 {
+		if atomic.LoadInt32(&count) > int32(3) {
 			wg.Wait()
 		}
 	}
 	wg.Wait()
+
 	return nil
 }
 
 func ClientSendLargeFileList() error {
 	wg := sync.WaitGroup{}
-	var count int = 0
+	var count int32 = 0
 	for _, spath := range largeFileList {
 		fpath := ToUnixSlash(filepath.Join(SourceDir, spath))
 		finfo, err := os.Stat(fpath)
@@ -235,23 +238,27 @@ func ClientSendLargeFileList() error {
 			PrintError("ClientSendLargeFileList", err)
 			continue
 		}
-		pbFile := file2pbFile(fpath, finfo, "file")
-
-		atomic.AddInt32(&totalNum, 1)
-		atomic.AddInt64(&totalWriteSize, finfo.Size())
-		DebugInfo("ClientSendLargeFileList: Sending", fpath)
 
 		wg.Add(1)
-		go func(fpath string, pbFile *pb.File) {
+		go func(fpath string, finfo fs.FileInfo) error {
 			defer wg.Done()
 			//PrintlnInfo("white", "Sending", fpath)
+			pbFile := file2pbFile(fpath, finfo, "file")
+
+			atomic.AddInt32(&totalNum, 1)
+			atomic.AddInt64(&totalWriteSize, finfo.Size())
+			DebugInfo("ClientSendLargeFileList: Sending", fpath)
+
+			atomic.AddInt32(&count, 1)
 			err = pbFileChunkSend(fpath, pbFile)
+			atomic.AddInt32(&count, -1)
 			PrintError("ClientSendLargeFileList: pbFileChunkSend", err)
-		}(fpath, pbFile)
+			return nil
+		}(fpath, finfo)
 
 		count++
 
-		if count%2 == 0 {
+		if atomic.LoadInt32(&count) > int32(2) {
 			wg.Wait()
 		}
 
