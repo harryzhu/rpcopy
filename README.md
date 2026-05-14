@@ -13,19 +13,20 @@
 
 | test data（Wi-Fi 5 传输） |    rpcopy     |    scp  |
 |--------------------------|---------------|---------|
-| 1782 个文件，共 4419 MB    |     203 秒    |  685 秒 |
+| 4518 个文件，共 10644 MB   |     363 秒    |  2211 秒 |
 
 
 
-| 6096 个文件，13.6 GB       |    rpcopy    |    scp   |
+
+| 6103 个文件，14363 MB     |    rpcopy    |    scp   |
 |--------------------------|---------------|---------|
-| 1000MB有线网卡 传输        |     220 秒    |  159 秒  |
+| 1000MB有线网卡 传输        |     134 秒    |  166 秒  |
 
 
 
 `rpcopy` 在 `mac` 或 `Linux` 上表现要优于在 `windows`上。
 
-上述测试，从 `windows` rpcopy 到 `mac`，需要`134秒`，从 `mac` rpcopy 到 `windows` 只需要 `96秒`
+上述测试，从 `windows` rpcopy 到 `mac`，需要`130秒`，从 `mac` rpcopy 到 `windows` 只需要 `96秒`
 
 
 ![RPCOPY](nic-rpcopy.jpg "rpcopy")
